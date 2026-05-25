@@ -2679,7 +2679,19 @@ function updateStatus() {
 // EXPORT JPEG
 // =============================================
 document.getElementById('btn-export-img').addEventListener('click', () => {
-  // Add watermark
+  // Dessiner la grille de rythme sur le canvas (statique, pas de step actif)
+  const logW = canvasWidth;
+  const logH = CANVAS_HEIGHT;
+  ctx.save();
+  ctx.scale(1 / zoom, 1 / zoom); // drawRhythmGrid travaille en coords logiques
+  ctx.restore();
+  // On dessine directement en coords physiques du canvas
+  ctx.save();
+  ctx.scale(zoom, zoom);
+  drawRhythmGrid(ctx, logW, logH, -1);
+  ctx.restore();
+
+  // Watermark
   ctx.save();
   ctx.globalAlpha = 0.3;
   ctx.fillStyle = '#e8ff3a';
@@ -2688,7 +2700,7 @@ document.getElementById('btn-export-img').addEventListener('click', () => {
   ctx.restore();
 
   const link = document.createElement('a');
-  link.download = 'beton-sonore-partition.jpg';
+  link.download = 'quasi-objet-partition.jpg';
   link.href = canvas.toDataURL('image/jpeg', 0.95);
   link.click();
   redraw();
@@ -2773,7 +2785,7 @@ async function exportMp3() {
     const wavBlob = bufferToWave(renderedBuffer);
     const url = URL.createObjectURL(wavBlob);
     const link = document.createElement('a');
-    link.download = 'beton-sonore-composition.wav';
+    link.download = 'quasi-objet-composition.wav';
     link.href = url;
     link.click();
     URL.revokeObjectURL(url);
@@ -3716,6 +3728,11 @@ async function exportVideo(filename) {
     // Tracés
     strokes.forEach(str => drawStrokeOn(vCtx, str));
 
+    // Grille boîte à rythme
+    const stepDurV = rhStepDuration();
+    const activeStepV = Math.floor((elapsed % (stepDurV * rhSteps)) / stepDurV) % rhSteps;
+    drawRhythmGrid(vCtx, canvasWidth, CANVAS_HEIGHT, activeStepV);
+
     // Curseur de lecture
     vCtx.strokeStyle = 'rgba(232,255,58,0.6)';
     vCtx.lineWidth = 2 / vZoom;
@@ -3734,6 +3751,75 @@ async function exportVideo(filename) {
   }
 
   requestAnimationFrame(drawVideoFrame);
+}
+
+// =============================================
+// DESSIN BOÎTE À RYTHME SUR CANVAS
+// =============================================
+// activeStep = -1 pour statique (JPEG), sinon index du step en cours (vidéo)
+function drawRhythmGrid(c, canvasW, canvasH, activeStep) {
+  const voices = rhVoices;
+  const numVoices = voices.length;
+  const rowH = 18;
+  const padB = 6;
+  const totalH = numVoices * rowH + padB * 2;
+  const top = canvasH - totalH;
+
+  // Fond semi-transparent
+  c.save();
+  c.fillStyle = 'rgba(10,10,11,0.72)';
+  c.fillRect(0, top, canvasW, totalH);
+
+  const stepW = canvasW / rhSteps;
+
+  voices.forEach((voice, vi) => {
+    const color = RH_COLORS[vi];
+    const rowTop = top + padB + vi * rowH;
+    const cellH = rowH - 4;
+
+    for (let si = 0; si < rhSteps; si++) {
+      const x = si * stepW;
+      const isActive = voice.steps[si];
+      const isPlaying = si === activeStep;
+
+      // Fond de case (séparateurs de groupe tous les 4)
+      c.fillStyle = (si % 4 === 0) ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)';
+      c.fillRect(x + 1, rowTop, stepW - 2, cellH);
+
+      if (isActive) {
+        c.fillStyle = color;
+        c.globalAlpha = isPlaying ? 1.0 : 0.7;
+        c.fillRect(x + 2, rowTop + 1, stepW - 4, cellH - 2);
+        c.globalAlpha = 1;
+      }
+
+      // Halo blanc si step en cours de lecture
+      if (isPlaying) {
+        c.strokeStyle = 'rgba(255,255,255,0.6)';
+        c.lineWidth = 1.5;
+        c.strokeRect(x + 1.5, rowTop + 0.5, stepW - 3, cellH - 1);
+      }
+    }
+
+    // Label voix (point coloré + nom du son)
+    const sample = voice.sampleId ? samples.find(s => s.id === voice.sampleId) : null;
+    if (sample) {
+      c.fillStyle = color;
+      c.font = 'bold 9px Space Mono, monospace';
+      c.globalAlpha = 0.6;
+      c.fillText(sample.name.substring(0, 10).toUpperCase(), 4, rowTop + cellH - 3);
+      c.globalAlpha = 1;
+    }
+  });
+
+  // Ligne de séparation haut
+  c.strokeStyle = 'rgba(255,255,255,0.1)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(0, top); c.lineTo(canvasW, top);
+  c.stroke();
+
+  c.restore();
 }
 
 // Version de drawStroke pour un contexte externe (vCtx)
@@ -3973,6 +4059,7 @@ document.getElementById('rh-toggle').addEventListener('click', () => {
 
 document.getElementById('switch-atelier').addEventListener('click', () => {
   setTimeout(rhBuildUI, 80);
+  rhStop(); // s'assurer que la boîte à rythme est à l'arrêt à l'ouverture
 });
 
 // Volume controls
@@ -3989,7 +4076,7 @@ document.getElementById('vol-rhythm').addEventListener('input', (e) => {
 });
 
 // Init boîte à rythme au démarrage de l'atelier
-setTimeout(rhBuildUI, 900);
+setTimeout(() => { rhBuildUI(); rhStop(); }, 900);
 
 // buildAudioChain vers une destination arbitraire (pour l'export vidéo)
 function showVideoLink(url, filename) {
