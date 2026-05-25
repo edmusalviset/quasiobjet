@@ -2711,13 +2711,23 @@ document.getElementById('modal-confirm').addEventListener('click', async () => {
 async function exportMp3() {
   ensureAudioCtx();
   const sonores = strokes.filter(s => s.sampleId && !s.isHighlight);
-  if (sonores.length === 0) { alert('Aucun tracé sonore à exporter.'); return; }
+  const hasRhythm = rhVoices.some(v => v.sampleId && v.steps.slice(0, rhSteps).some(Boolean));
 
-  const maxX = Math.max(...sonores.flatMap(s => s.points.map(p => p.x)));
-  const totalDur = posToTime(maxX) + 2;
+  if (sonores.length === 0 && !hasRhythm) { alert('Aucun tracé sonore à exporter.'); return; }
+
+  // Durée du canvas (ou 0 si vide)
+  const maxX = sonores.length > 0
+    ? Math.max(...sonores.flatMap(s => s.points.map(p => p.x)))
+    : 0;
+  const canvasDur = posToTime(maxX);
+
+  // Durée de la boîte à rythme : on exporte 2 répétitions minimales si pas de canvas, sinon on cale sur la durée totale
+  const rhCycleDur = rhStepDuration() * rhSteps;
+  const totalDur = Math.max(canvasDur, rhCycleDur) + 2;
 
   const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalDur * 44100), 44100);
 
+  // --- Tracés canvas ---
   for (const str of sonores) {
     const sample = samples.find(s => s.id === str.sampleId);
     if (!sample || !sample.audioBuffer) continue;
@@ -2730,6 +2740,32 @@ async function exportMp3() {
     const src = buildAudioChain(offlineCtx, sample.audioBuffer, delay, duration, pitch, str, offlineCtx.destination, 0);
     src.start(delay);
     src.stop(delay + duration + 0.1);
+  }
+
+  // --- Boîte à rythme ---
+  const stepDur = rhStepDuration();
+  const numCycles = Math.ceil(totalDur / (stepDur * rhSteps));
+  for (let cycle = 0; cycle < numCycles; cycle++) {
+    for (let si = 0; si < rhSteps; si++) {
+      const hitTime = cycle * stepDur * rhSteps + si * stepDur;
+      if (hitTime >= totalDur) break;
+      rhVoices.forEach(voice => {
+        if (!voice.sampleId || !voice.steps[si]) return;
+        const sample = samples.find(s => s.id === voice.sampleId);
+        if (!sample || !sample.audioBuffer) return;
+        const buf = sample.audioBuffer;
+        const hitDur = Math.min(0.25, buf.duration);
+        const src = offlineCtx.createBufferSource();
+        src.buffer = buf;
+        const gainNode = offlineCtx.createGain();
+        gainNode.gain.setValueAtTime(1, hitTime);
+        gainNode.gain.linearRampToValueAtTime(0.0001, hitTime + hitDur);
+        src.connect(gainNode);
+        gainNode.connect(offlineCtx.destination);
+        src.start(hitTime);
+        src.stop(hitTime + hitDur + 0.05);
+      });
+    }
   }
 
   try {
@@ -3527,9 +3563,15 @@ async function exportVideo(filename) {
 
   // Durée totale
   const sonores = strokes.filter(s => s.sampleId && !s.isHighlight);
-  if (!sonores.length) return;
-  const maxX = Math.max(...sonores.flatMap(s => s.points.map(p => p.x)));
-  const totalDur = posToTime(maxX) + 1;
+  const hasRhythm = rhVoices.some(v => v.sampleId && v.steps.slice(0, rhSteps).some(Boolean));
+  if (!sonores.length && !hasRhythm) { alert('Aucun tracé sonore à exporter.'); return; }
+
+  const maxX = sonores.length > 0
+    ? Math.max(...sonores.flatMap(s => s.points.map(p => p.x)))
+    : 0;
+  const canvasDur = posToTime(maxX);
+  const rhCycleDur = rhStepDuration() * rhSteps;
+  const totalDur = Math.max(canvasDur, rhCycleDur) + 1;
 
   // Canvas d'export (taille fixe 1920×500 en logique, rendu × dpr)
   const VW = 1920, VH = Math.round(CANVAS_HEIGHT * (1920 / (canvasWidth * zoom || 1920)));
@@ -3543,7 +3585,7 @@ async function exportVideo(filename) {
   // Nœud de destination audio capturé
   const audioDest = audioCtx.createMediaStreamDestination();
 
-  // Planifier tous les sons
+  // Planifier tous les sons du canvas
   const startClock = audioCtx.currentTime + 0.2;
   sonores.forEach(str => {
     const sample = samples.find(s => s.id === str.sampleId);
@@ -3553,14 +3595,39 @@ async function exportVideo(filename) {
     const dur    = getStrokeDuration(str);
     const pitch  = getStrokePitchAtX(str, startX);
 
-    const src = vCanvas._buildSrc
-      ? null
-      : buildAudioChainTo(audioCtx, sample.audioBuffer, startClock + delay, dur, pitch, str, audioDest);
+    const src = buildAudioChainTo(audioCtx, sample.audioBuffer, startClock + delay, dur, pitch, str, audioDest);
     if (src) {
       src.start(startClock + delay);
       src.stop(startClock + delay + dur + 0.1);
     }
   });
+
+  // Planifier la boîte à rythme
+  const stepDur = rhStepDuration();
+  const numCycles = Math.ceil(totalDur / (stepDur * rhSteps));
+  for (let cycle = 0; cycle < numCycles; cycle++) {
+    for (let si = 0; si < rhSteps; si++) {
+      const hitOffset = cycle * stepDur * rhSteps + si * stepDur;
+      if (hitOffset >= totalDur) break;
+      const hitAt = startClock + hitOffset;
+      rhVoices.forEach(voice => {
+        if (!voice.sampleId || !voice.steps[si]) return;
+        const sample = samples.find(s => s.id === voice.sampleId);
+        if (!sample || !sample.audioBuffer) return;
+        const buf = sample.audioBuffer;
+        const hitDur = Math.min(0.25, buf.duration);
+        const rhSrc = audioCtx.createBufferSource();
+        rhSrc.buffer = buf;
+        const rhGain = audioCtx.createGain();
+        rhGain.gain.setValueAtTime(1, hitAt);
+        rhGain.gain.linearRampToValueAtTime(0.0001, hitAt + hitDur);
+        rhSrc.connect(rhGain);
+        rhGain.connect(audioDest);
+        rhSrc.start(hitAt);
+        rhSrc.stop(hitAt + hitDur + 0.05);
+      });
+    }
+  }
 
   // Stream vidéo depuis le canvas
   const fps = 30;
