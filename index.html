@@ -1,0 +1,3975 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QUASI OBJET — Studio de Musique Concrète</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #0a0a0b;
+  --surface: #111114;
+  --surface2: #18181d;
+  --border: #2a2a35;
+  --accent: #e8ff3a;
+  --accent2: #ff4b6e;
+  --accent3: #3adfff;
+  --text: #d4d4d8;
+  --text-dim: #6b6b7a;
+  --grid: rgba(255,255,255,0.04);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  height: 48px;
+  min-height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+header::-webkit-scrollbar { display: none; }
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.danger { border-color: var(--accent2); color: var(--accent2); }
+.btn.danger:hover { background: var(--accent2); color: #fff; }
+
+.bpm-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+}
+.bpm-control label { color: var(--text-dim); }
+.bpm-control input {
+  width: 56px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.snap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.snap-toggle input[type=checkbox] { accent-color: var(--accent); width:14px; height:14px; cursor:pointer; }
+
+.separator { width:1px; height:30px; background: var(--border); }
+
+.vol-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.vol-control label { white-space: nowrap; }
+.vol-control input[type=range] {
+  width: 64px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.vol-control span { color: var(--accent); min-width: 28px; text-align: right; }
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* MAIN LAYOUT */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* MAIN */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* RESERVOIR PANEL */
+.reservoir {
+  width: 180px;
+  min-width: 180px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s, min-width 0.2s;
+}
+.reservoir.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+/* EFFECTS PANEL */
+.effects-panel {
+  width: 160px;
+  min-width: 160px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: width 0.2s, min-width 0.2s;
+}
+.effects-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  border-left: none;
+  overflow: hidden;
+}
+.effects-panel::-webkit-scrollbar { width: 4px; }
+.effects-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Toggle buttons for panels */
+.panel-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text-dim);
+  z-index: 10;
+  transition: color 0.15s;
+  border-radius: 0 4px 4px 0;
+}
+.panel-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.panel-toggle.right { border-radius: 4px 0 0 4px; }
+
+.canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+.panel-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drop-zone {
+  margin: 10px;
+  border: 1.5px dashed var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'Space Mono', monospace;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(232,255,58,0.04);
+}
+.drop-zone .icon { font-size: 20px; margin-bottom: 4px; }
+
+.sample-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+.sample-list::-webkit-scrollbar { width: 4px; }
+.sample-list::-webkit-scrollbar-track { background: transparent; }
+.sample-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sample-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  margin-bottom: 3px;
+  position: relative;
+}
+.sample-item:hover { background: var(--surface2); border-color: var(--border); }
+.sample-item.selected { border-color: var(--accent); background: rgba(232,255,58,0.06); }
+
+.sample-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.sample-name {
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.sample-del {
+  opacity: 0;
+  font-size: 14px;
+  color: var(--accent2);
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+.sample-item:hover .sample-del { opacity: 0.7; }
+.sample-del:hover { opacity: 1 !important; }
+
+/* CANVAS AREA */
+
+.canvas-scroll-wrapper {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+  background: var(--bg);
+}
+.canvas-scroll-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+.canvas-scroll-wrapper::-webkit-scrollbar-track { background: var(--surface); }
+.canvas-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+canvas#composition {
+  display: block;
+  cursor: crosshair;
+}
+
+/* PLAYHEAD */
+#playhead {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: rgba(232,255,58,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 5;
+}
+#playhead.visible { opacity: 1; }
+
+/* RULER */
+#ruler {
+  height: 28px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+/* STATUS BAR */
+.statusbar {
+  height: 26px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 20px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.status-item span { color: var(--accent); }
+
+/* FX buttons */
+
+.fx-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.fx-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.fx-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  margin-bottom: 5px;
+  transition: all 0.15s;
+  width: 100%;
+}
+.fx-btn:hover { border-color: #888; }
+.fx-btn.active { border-color: var(--accent3); color: var(--accent3); background: rgba(58,223,255,0.07); }
+.fx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.highlighter-btn.hp { --c: #ff9500; }
+.highlighter-btn.lp { --c: #7c3aed; }
+.highlighter-btn.fi { --c: #22c55e; }
+.highlighter-btn.fo { --c: #f43f5e; }
+.highlighter-btn.active .fx-dot { background: var(--c) !important; }
+.highlighter-btn:hover .fx-dot { background: var(--c) !important; }
+
+/* CONTEXT MENU */
+#ctx-menu {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  min-width: 140px;
+}
+#ctx-menu .ctx-item {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+#ctx-menu .ctx-item:hover { background: var(--border); }
+#ctx-menu .ctx-item.danger { color: var(--accent2); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 380px;
+  width: 90%;
+}
+.modal h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 3px;
+  margin-bottom: 16px;
+  color: var(--accent);
+}
+.modal p { font-size: 13px; margin-bottom: 20px; color: var(--text-dim); line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* Loading */
+.loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 6px;
+  color: var(--accent);
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 0.5s;
+}
+.loading p { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: 2px; }
+
+/* =============================================
+   RHYTHM MACHINE
+   ============================================= */
+#rhythm-section {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 168px;
+  min-height: 168px;
+  overflow: hidden;
+  transition: height 0.2s;
+}
+#rhythm-section.collapsed {
+  height: 36px;
+  min-height: 36px;
+}
+
+.rhythm-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 36px;
+  min-height: 36px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rhythm-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+}
+.rhythm-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  margin-left: auto;
+  line-height: 1;
+}
+.rhythm-toggle-btn:hover { color: var(--accent); }
+
+.rhythm-bpm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.rhythm-bpm input {
+  width: 48px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+.rhythm-steps-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.rhythm-steps-ctrl select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rhythm-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.rhythm-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.rhythm-track-label {
+  width: 60px;
+  min-width: 60px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rhythm-track-label:hover { color: var(--accent); }
+.rhythm-track-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rhythm-track-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rhythm-track-assign {
+  font-size: 9px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+.rhythm-steps {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.rhythm-step {
+  flex: 1;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.08s;
+  position: relative;
+}
+.rhythm-step:hover {
+  border-color: var(--text-dim);
+}
+.rhythm-step.active {
+  border-color: transparent;
+}
+.rhythm-step.beat-accent {
+  border-top: 2px solid rgba(255,255,255,0.08);
+}
+.rhythm-step.playing {
+  outline: 1px solid rgba(255,255,255,0.4);
+  outline-offset: 1px;
+}
+
+/* Séparateurs de temps (tous les 4 steps) */
+.rhythm-step-group {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+.rhythm-step-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.rhythm-play-btn {
+  width: 28px;
+  height: 22px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 9px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.rhythm-play-btn:hover { border-color: var(--accent); color: var(--accent); }
+.rhythm-play-btn.rh-playing { background: var(--accent); color: #000; border-color: var(--accent); }
+
+/* =============================================
+   MOBILE / TOUCH
+   ============================================= */
+
+/* Empêcher le zoom double-tap et le scroll pendant le dessin */
+canvas#composition {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Bouton hamburger (mobile only) */
+#btn-hamburger {
+  display: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Overlay mobile pour panneaux */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 50;
+}
+.mobile-overlay.open { display: block; }
+
+/* Panneau réservoir en drawer sur mobile */
+@media (max-width: 700px) {
+
+  #btn-hamburger { display: flex; align-items: center; }
+
+  /* Header: logo + switch + hamburger uniquement */
+  #atelier-controls { display: none !important; }
+  .separator { display: none; }
+
+  /* Drawer gauche (réservoir) */
+  .reservoir {
+    position: fixed;
+    top: 48px; left: 0; bottom: 0;
+    z-index: 60;
+    width: 220px !important;
+    min-width: 220px !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s;
+    border-right: 1px solid var(--border) !important;
+  }
+  .reservoir.open { transform: translateX(0); }
+  .reservoir.collapsed { transform: translateX(-100%); width: 220px !important; min-width: 220px !important; }
+
+  /* Drawer droit (effets) */
+  .effects-panel {
+    position: fixed;
+    top: 48px; right: 0; bottom: 0;
+    z-index: 60;
+    width: 200px !important;
+    min-width: 200px !important;
+    transform: translateX(100%);
+    transition: transform 0.25s;
+    border-left: 1px solid var(--border) !important;
+  }
+  .effects-panel.open { transform: translateX(0); }
+  .effects-panel.collapsed { transform: translateX(100%); width: 200px !important; min-width: 200px !important; }
+
+  /* Canvas pleine largeur */
+  .canvas-container { width: 100%; }
+
+  /* Toolbar flottante en bas */
+  #mobile-toolbar {
+    display: flex !important;
+  }
+
+  /* Boutons plus grands pour le touch */
+  .btn { padding: 10px 14px; font-size: 12px; }
+  .fx-btn { padding: 10px 10px; font-size: 11px; }
+
+  /* Toggle buttons cachés (remplacés par hamburger) */
+  .panel-toggle { display: none; }
+
+  /* Labo: curseurs waveform plus larges */
+  .waveform-cursor { width: 36px; }
+
+  /* Status bar cachée */
+  .statusbar { display: none; }
+}
+
+/* Toolbar mobile flottante (outils atelier) */
+#mobile-toolbar {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px;
+  gap: 8px;
+  z-index: 40;
+  overflow-x: auto;
+  scrollbar-width: none;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+#mobile-toolbar::-webkit-scrollbar { display: none; }
+#mobile-toolbar .btn { flex-shrink: 0; padding: 10px 12px; }
+
+/* Sur mobile, laisser de la place pour la toolbar en bas */
+@media (max-width: 700px) {
+  .panel { padding-bottom: 56px; }
+  #panel-labo { padding-bottom: 0; }
+}
+
+
+/* =============================================
+   SWITCH LABO / ATELIER
+   ============================================= */
+.app-switch {
+  display: flex;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.app-switch-btn {
+  padding: 5px 16px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.app-switch-btn.active { background: var(--accent); color: #000; }
+
+/* PANELS */
+.panel { display: none; flex: 1; overflow: hidden; }
+.panel.visible { display: flex; }
+/* L'atelier est une row, le labo une colonne */
+#panel-atelier { flex-direction: row; }
+#panel-labo    { flex-direction: column; }
+
+/* =============================================
+   LABORATOIRE
+   ============================================= */
+.labo-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.labo-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Liste des sons du labo */
+.labo-list {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.labo-list-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+.labo-list-inner::-webkit-scrollbar { width: 4px; }
+.labo-list-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.labo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  margin-bottom: 3px;
+  transition: all 0.15s;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+}
+.labo-item:hover { background: var(--surface2); border-color: var(--border); }
+.labo-item.selected { border-color: var(--accent3); background: rgba(58,223,255,0.06); }
+.labo-item-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--accent3); }
+.labo-item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.labo-item-del { opacity: 0; color: var(--accent2); cursor: pointer; font-size: 13px; }
+.labo-item:hover .labo-item-del { opacity: 0.7; }
+
+/* Zone principale du labo */
+.labo-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px;
+  gap: 16px;
+}
+
+/* Drop zone labo */
+.labo-drop {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  color: var(--text-dim);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.labo-drop:hover, .labo-drop.drag-over { border-color: var(--accent3); color: var(--accent3); }
+
+/* Waveform */
+.waveform-container {
+  flex: 1;
+  position: relative;
+  background: #0d0d10;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 120px;
+}
+#waveform-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.waveform-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Curseurs début/fin — zone de hit invisible, rendu sur canvas */
+.waveform-cursor {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 24px;
+  cursor: ew-resize;
+  z-index: 5;
+  transform: translateX(-50%);
+  background: transparent;
+}
+.waveform-cursor::before,
+.waveform-cursor::after { display: none; }
+
+/* Zone sélectionnée sur la waveform */
+#waveform-selection {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(232,255,58,0.07);
+  pointer-events: none;
+}
+
+/* Contrôles du labo */
+.labo-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.knob-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.knob-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.knob {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) 0deg, var(--surface2) 0deg);
+  border: 2px solid var(--border);
+  cursor: ns-resize;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.knob:hover { border-color: var(--accent); }
+.knob::after {
+  content: '';
+  position: absolute;
+  top: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 8px;
+  background: var(--text);
+  border-radius: 1px;
+}
+.knob-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--accent);
+}
+
+.labo-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Rec button */
+.btn-rec {
+  background: var(--accent2);
+  border: none;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.btn-rec:hover { background: #ff2d55; }
+.btn-rec.recording { animation: pulse-rec 1s infinite; }
+@keyframes pulse-rec {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Envoyer vers réservoir */
+.btn-send {
+  background: var(--accent);
+  border: none;
+  color: #000;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  transition: all 0.15s;
+}
+.btn-send:hover { background: #fff; }
+.btn-send:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; }
+
+/* Waveform playhead */
+#waveform-playhead {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: #fff;
+  pointer-events: none;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  QUASI OBJET
+  <p>INITIALISATION DU STUDIO...</p>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">QUASI OBJET</div>
+  <div class="separator"></div>
+  <div class="app-switch">
+    <button class="app-switch-btn active" id="switch-labo">LABORATOIRE</button>
+    <button class="app-switch-btn" id="switch-atelier">ATELIER</button>
+  </div>
+  <!-- Contrôles atelier (cachés en mode labo) -->
+  <div id="atelier-controls" style="display:none;align-items:center;gap:12px;flex-wrap:nowrap;margin-left:8px;flex-shrink:0">
+    <div class="separator"></div>
+    <div class="transport">
+      <button class="btn" id="btn-rewind" title="Retour au début">⏮ DÉBUT</button>
+      <button class="btn" id="btn-play" title="Lecture (Espace)">▶ LECTURE</button>
+      <button class="btn" id="btn-stop" title="Stop">■ STOP</button>
+      <button class="btn" id="btn-loop" title="Boucle">⟲ BOUCLE</button>
+    </div>
+    <div class="separator"></div>
+    <div class="snap-toggle">
+      <input type="checkbox" id="snap-cb">
+      <label for="snap-cb">GRILLE</label>
+    </div>
+    <div class="separator"></div>
+    <div class="tool-group">
+      <button class="btn active" id="tool-brush" title="Pinceau (B)">PINCEAU</button>
+      <button class="btn" id="tool-eraser" title="Gomme (E)">GOMME</button>
+      <button class="btn" id="tool-zone" title="Sélection (Z)">SÉLECTION</button>
+    </div>
+    <div class="separator"></div>
+    <div class="vol-control">
+      <label>CANVAS</label>
+      <input type="range" id="vol-canvas" min="0" max="150" value="100" step="1">
+      <span id="vol-canvas-val">100%</span>
+    </div>
+  </div>
+  <!-- Hamburger mobile -->
+  <button id="btn-hamburger" style="margin-left:auto">☰</button>
+</header>
+
+<!-- Overlay mobile -->
+<div class="mobile-overlay" id="mobile-overlay"></div>
+
+<!-- Toolbar mobile flottante (visible uniquement sur mobile en mode atelier) -->
+<div id="mobile-toolbar">
+  <button class="btn" id="mob-rewind">⏮ DÉBUT</button>
+  <button class="btn" id="mob-play">▶ LECTURE</button>
+  <button class="btn" id="mob-stop">■ STOP</button>
+  <button class="btn" id="mob-loop">⟲ BOUCLE</button>
+  <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+  <button class="btn active" id="mob-brush">PINCEAU</button>
+  <button class="btn" id="mob-eraser">GOMME</button>
+  <button class="btn" id="mob-zone">SÉLECTION</button>
+  <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+  <button class="btn" id="mob-reservoir">📂 SONS</button>
+  <button class="btn" id="mob-effects">🎛 EFFETS</button>
+</div>
+
+<!-- ============================================================
+     PANEL ATELIER
+     ============================================================ -->
+<div class="panel" id="panel-atelier">
+
+  <!-- RESERVOIR -->
+  <div class="reservoir" id="reservoir-panel">
+    <div class="panel-title">RÉSERVOIR</div>
+    <div class="sample-list" id="sample-list"></div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-container">
+    <!-- Toggle réservoir -->
+    <button class="panel-toggle" id="toggle-reservoir" title="Réservoir" style="left:0">›</button>
+    <!-- Toggle effets -->
+    <button class="panel-toggle right" id="toggle-effects" title="Effets" style="right:0">‹</button>
+    <canvas id="ruler"></canvas>
+    <div class="canvas-scroll-wrapper" id="scroll-wrapper">
+      <canvas id="composition"></canvas>
+      <div id="playhead"></div>
+    </div>
+    <div class="statusbar">
+      <div class="status-item">OUTIL: <span id="st-tool">PINCEAU</span></div>
+      <div class="status-item">ÉCHANTILLON: <span id="st-sample">AUCUN</span></div>
+      <div class="status-item">POSITION: <span id="st-pos">0:00.000</span></div>
+      <div class="status-item">TRACÉS: <span id="st-strokes">0</span></div>
+      <div class="status-item">DURÉE: <span id="st-dur">0:00</span></div>
+    </div>
+    <!-- RHYTHM MACHINE -->
+    <div id="rhythm-section">
+      <div class="rhythm-header">
+        <div class="rhythm-title">RYTHME</div>
+        <button class="rhythm-play-btn" id="rh-play-btn">▶</button>
+        <div class="rhythm-bpm">
+          <label>BPM</label>
+          <input type="number" id="rh-bpm" value="120" min="20" max="300">
+        </div>
+        <div class="rhythm-steps-ctrl">
+          <label>STEPS</label>
+          <select id="rh-steps">
+            <option value="8">8</option>
+            <option value="16" selected>16</option>
+            <option value="32">32</option>
+          </select>
+        </div>
+        <button class="btn" id="rh-clear-btn" style="font-size:9px;padding:3px 8px;margin-left:4px">✕ VIDER</button>
+        <div class="vol-control" style="margin-left:8px">
+          <label>VOL</label>
+          <input type="range" id="vol-rhythm" min="0" max="150" value="100" step="1">
+          <span id="vol-rhythm-val">100%</span>
+        </div>
+        <button class="rhythm-toggle-btn" id="rh-toggle">▼</button>
+      </div>
+      <div class="rhythm-body" id="rh-body"></div>
+    </div>
+  </div>
+
+  <!-- EFFECTS -->
+  <div class="effects-panel">
+    <div class="fx-section">
+      <div class="fx-title">ÉDITION</div>
+      <button class="btn" id="btn-undo" style="width:100%;margin-bottom:5px">↩ ANNULER</button>
+      <button class="btn" id="btn-redo" style="width:100%;margin-bottom:5px">↪ RÉTABLIR</button>
+      <button class="btn" id="btn-copy" style="width:100%;margin-bottom:5px" disabled>⎘ COPIER ZONE</button>
+      <button class="btn" id="btn-paste" style="width:100%" disabled>⎗ COLLER</button>
+    </div>
+    <div class="fx-section">
+      <div class="fx-title">EFFETS</div>
+      <button class="fx-btn highlighter-btn hp" id="fx-hp" data-fx="hp">
+        <div class="fx-dot" style="background:#ff9500"></div> PASSE-HAUT
+      </button>
+      <button class="fx-btn highlighter-btn lp" id="fx-lp" data-fx="lp">
+        <div class="fx-dot" style="background:#7c3aed"></div> PASSE-BAS
+      </button>
+      <button class="fx-btn highlighter-btn fi" id="fx-fi" data-fx="fi">
+        <div class="fx-dot" style="background:#22c55e"></div> FONDU OUVERTURE
+      </button>
+      <button class="fx-btn highlighter-btn fo" id="fx-fo" data-fx="fo">
+        <div class="fx-dot" style="background:#f43f5e"></div> FONDU FERMETURE
+      </button>
+    </div>
+    <div class="fx-section">
+      <div class="fx-title">ZOOM</div>
+      <button class="btn" id="btn-zoom-in" style="width:100%;margin-bottom:5px">+ ZOOM</button>
+      <button class="btn" id="btn-zoom-out" style="width:100%">- ZOOM</button>
+    </div>
+    <div class="fx-section">
+      <div class="fx-title">CANVAS</div>
+      <button class="btn" id="btn-extend" style="width:100%;margin-bottom:5px">→ ÉTENDRE</button>
+      <button class="btn danger" id="btn-clear" style="width:100%">✕ EFFACER TOUT</button>
+    </div>
+    <div class="fx-section">
+      <div class="fx-title">EXPORT</div>
+      <button class="btn" id="btn-export-mp3" style="width:100%;margin-bottom:5px">⬇ MP3</button>
+      <button class="btn" id="btn-export-img" style="width:100%;margin-bottom:5px">⬇ JPEG</button>
+      <button class="btn" id="btn-export-mp4" style="width:100%">⬇ VIDÉO</button>
+    </div>
+    <div class="fx-section">
+      <div class="fx-title">AIDE RAPIDE</div>
+      <div style="font-size:10px;font-family:'Space Mono',monospace;color:var(--text-dim);line-height:1.8">
+        <div>↑ aigu / ↓ grave</div>
+        <div>←→ longueur = durée</div>
+        <div>← droite→gauche = ◀</div>
+        <div>B=pinceau E=gomme Z=zone</div>
+        <div>Ctrl+C/V = copier/coller</div>
+        <div>Ctrl+Z / Ctrl+Y</div>
+        <div>ESPACE = play/stop</div>
+      </div>
+    </div>
+  </div>
+
+</div> <!-- /panel-atelier -->
+
+<!-- ============================================================
+     PANEL LABORATOIRE
+     ============================================================ -->
+<div class="panel visible" id="panel-labo">
+
+  <!-- Header labo -->
+  <div class="labo-header">
+    <button class="btn-rec" id="btn-rec">● ENREGISTRER</button>
+    <div class="separator"></div>
+    <button class="btn" id="labo-btn-play">▶ ÉCOUTER</button>
+    <button class="btn" id="labo-btn-stop">■ STOP</button>
+    <div class="separator"></div>
+    <button class="btn" id="labo-btn-normalize">⬆ NORMALISER</button>
+    <button class="btn" id="labo-btn-reverse">⇄ INVERSER</button>
+    <button class="btn" id="labo-btn-trim">✂ ROGNER</button>
+    <div class="separator"></div>
+    <button class="btn-send" id="labo-btn-send" disabled>→ ENVOYER VERS L'ATELIER</button>
+    <input type="file" id="labo-file-input" accept="audio/*" multiple>
+  </div>
+
+  <!-- Corps labo -->
+  <div class="labo-body">
+
+    <!-- Liste sons labo -->
+    <div class="labo-list">
+      <div class="panel-title">SONS</div>
+      <div style="padding:8px">
+        <div class="labo-drop" id="labo-drop-zone">
+          <div style="font-size:18px;margin-bottom:4px">🎵</div>
+          GLISSER DES SONS<br>ou <u>parcourir</u>
+        </div>
+      </div>
+      <div class="labo-list-inner" id="labo-list"></div>
+    </div>
+
+    <!-- Zone principale -->
+    <div class="labo-main">
+
+      <!-- Forme d'onde -->
+      <div class="waveform-container" id="waveform-container">
+        <canvas id="waveform-canvas"></canvas>
+        <div id="waveform-selection"></div>
+        <div class="waveform-cursor start" id="cursor-start" style="left:0%"></div>
+        <div class="waveform-cursor end"   id="cursor-end"   style="left:100%"></div>
+        <div id="waveform-playhead"></div>
+        <div class="waveform-placeholder" id="waveform-placeholder">
+          Sélectionnez ou chargez un son pour visualiser la forme d'onde
+        </div>
+      </div>
+
+      <!-- Potentiomètres + actions -->
+      <div class="labo-controls">
+        <div class="knob-group">
+          <div class="knob-label">VOLUME</div>
+          <div class="knob" id="knob-volume" data-value="100" data-min="0" data-max="150"></div>
+          <div class="knob-val" id="knob-volume-val">100%</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob-label">HAUTEUR</div>
+          <div class="knob" id="knob-pitch" data-value="0" data-min="-24" data-max="24"></div>
+          <div class="knob-val" id="knob-pitch-val">0st</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob-label">ATTAQUE</div>
+          <div class="knob" id="knob-attack" data-value="0" data-min="0" data-max="100"></div>
+          <div class="knob-val" id="knob-attack-val">0ms</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob-label">SORTIE</div>
+          <div class="knob" id="knob-release" data-value="0" data-min="0" data-max="100"></div>
+          <div class="knob-val" id="knob-release-val">0ms</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim)">
+            <div id="labo-info-dur">—</div>
+            <div id="labo-info-sr">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div> <!-- /panel-labo -->
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-delete">🗑 Supprimer tracé</div>
+  <div class="ctx-item" id="ctx-fx-hp">+ Filtre passe-haut</div>
+  <div class="ctx-item" id="ctx-fx-lp">+ Filtre passe-bas</div>
+  <div class="ctx-item" id="ctx-fx-fi">+ Fondu ouverture</div>
+  <div class="ctx-item" id="ctx-fx-fo">+ Fondu fermeture</div>
+</div>
+
+<!-- MODAL EXPORT MP3 -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal">
+    <h3>EXPORT MP3</h3>
+    <p>L'export MP3 va rendre toute la composition. Cela peut prendre quelques secondes selon le nombre de pistes.</p>
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">ANNULER</button>
+      <button class="btn active" id="modal-confirm">EXPORTER</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT VIDÉO -->
+<div class="modal-overlay" id="modal-video">
+  <div class="modal">
+    <h3>EXPORT VIDÉO</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <input id="video-classe" type="text" placeholder="Classe (ex: 3B)" style="
+        background:var(--surface2);border:1px solid var(--border);color:var(--text);
+        font-family:Space Mono,monospace;font-size:12px;padding:8px 12px;
+        border-radius:4px;outline:none;width:100%;
+      ">
+      <input id="video-nom" type="text" placeholder="Nom" style="
+        background:var(--surface2);border:1px solid var(--border);color:var(--text);
+        font-family:Space Mono,monospace;font-size:12px;padding:8px 12px;
+        border-radius:4px;outline:none;width:100%;
+      ">
+      <input id="video-prenom" type="text" placeholder="Prénom" style="
+        background:var(--surface2);border:1px solid var(--border);color:var(--text);
+        font-family:Space Mono,monospace;font-size:12px;padding:8px 12px;
+        border-radius:4px;outline:none;width:100%;
+      ">
+      <div id="video-name-preview" style="
+        font-family:Space Mono,monospace;font-size:10px;color:var(--text-dim);padding:4px 0;
+      ">Nom du fichier : quasi-objet.webm</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="modal-video-cancel">ANNULER</button>
+      <button class="btn" id="modal-video-local" title="Télécharger sur cet appareil">⬇ LOCAL</button>
+      <button class="btn active" id="modal-video-confirm" title="Envoyer vers le serveur partagé">⬆ ENVOYER</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// QUASI OBJET — Moteur principal
+// =============================================
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+let canvasMasterGain = null;
+let rhythmMasterGain = null;
+
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new AudioCtx();
+    canvasMasterGain = audioCtx.createGain();
+    canvasMasterGain.gain.value = 1;
+    canvasMasterGain.connect(audioCtx.destination);
+    rhythmMasterGain = audioCtx.createGain();
+    rhythmMasterGain.gain.value = 1;
+    rhythmMasterGain.connect(audioCtx.destination);
+  }
+  return audioCtx;
+}
+
+// ---- CONSTANTES ----
+const SAMPLE_COLORS = [
+  '#e8ff3a','#ff4b6e','#3adfff','#ff9500','#c084fc','#22c55e',
+  '#f97316','#06b6d4','#ec4899','#84cc16','#a78bfa','#fb923c',
+  '#34d399','#f43f5e','#60a5fa','#facc15'
+];
+
+const CANVAS_HEIGHT = 500;
+const PIXELS_PER_SEC = 120; // à 100% zoom
+const PITCH_RANGE = 6; // octaves +/- (±3 octaves : playbackRate de 0.125 à 8)
+const MARKER_ALPHA = 0.35;
+
+// ---- STATE ----
+let samples = [];
+let strokes = [];
+let rulers = [];
+let tool = 'brush';       // brush | eraser | select | zone
+let activeSample = null;
+let activeFx = null;
+let drawing = false;
+let currentStroke = null;
+let selectedStroke = null;
+let dragState = null;
+let snapEnabled = false;
+let zoom = 1.0;
+let canvasWidth = 2000; // valeur provisoire, ajustée dans initCanvas
+let isPlaying = false;
+let isLooping = false;
+let playStartTime = 0;
+let playStartPos = 0;
+let playheadPos = 0;
+let playAnimFrame = null;
+let scheduledSources = [];
+let ctxMenuStroke = null;
+// Sélection de zone
+let zoneRect = null;        // {x1,y1,x2,y2} en coords logiques
+let zoneDrawing = false;
+let zoneDragState = null;   // {lastX, lastY} pour déplacement en bloc
+let zoneStrokes = [];       // tracés dans la zone sélectionnée
+let clipboard = [];         // tracés copiés
+// Undo/redo
+let undoStack = [];
+let redoStack = [];
+const UNDO_MAX = 50;
+
+function saveUndo() {
+  undoStack.push(JSON.stringify(strokes));
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack = [];
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(JSON.stringify(strokes));
+  strokes = JSON.parse(undoStack.pop());
+  selectedStroke = null;
+  redraw(); updateStatus();
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(JSON.stringify(strokes));
+  strokes = JSON.parse(redoStack.pop());
+  selectedStroke = null;
+  redraw(); updateStatus();
+}
+
+// ---- DOM ----
+const canvas = document.getElementById('composition');
+const ctx = canvas.getContext('2d');
+const rulerCanvas = document.getElementById('ruler');
+const rulerCtx = rulerCanvas.getContext('2d');
+const sampleList = document.getElementById('sample-list');
+const playhead = document.getElementById('playhead');
+const scrollWrapper = document.getElementById('scroll-wrapper');
+const ctxMenu = document.getElementById('ctx-menu');
+
+// Init canvas
+function initCanvas() {
+  // scrollWrapper peut avoir clientWidth=0 si le panel est caché au démarrage
+  const w = scrollWrapper.clientWidth || (window.innerWidth - 380);
+  canvasWidth = w;
+  rulerCanvas.width = w;
+  rulerCanvas.height = 28;
+  redraw();
+  drawRuler();
+}
+
+window.addEventListener('resize', () => {
+  rulerCanvas.width = scrollWrapper.clientWidth;
+  rulerCanvas.height = 28;
+  drawRuler();
+});
+
+scrollWrapper.addEventListener('scroll', () => {
+  drawRuler();
+});
+
+// ---- LOADING ----
+setTimeout(() => {
+  document.getElementById('loading').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading').remove(), 500);
+  initCanvas();
+}, 800);
+
+// =============================================
+// SAMPLES
+// =============================================
+async function loadAudioFile(file) {
+  ensureAudioCtx();
+  const arrayBuffer = await file.arrayBuffer();
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  return audioBuffer;
+}
+
+async function addSample(file) {
+  const id = Date.now() + Math.random();
+  const color = SAMPLE_COLORS[samples.length % SAMPLE_COLORS.length];
+  const name = file.name.replace(/\.[^/.]+$/, '').substring(0, 18);
+  let audioBuffer = null;
+  try {
+    audioBuffer = await loadAudioFile(file);
+  } catch(e) { console.warn('Audio decode error', e); }
+  const sample = { id, name, color, file, audioBuffer };
+  samples.push(sample);
+  renderSampleList();
+  selectSample(sample);
+}
+
+function renderSampleList() {
+  sampleList.innerHTML = '';
+  if (samples.length === 0) {
+    sampleList.innerHTML = '<div style="padding:12px;font-size:10px;font-family:Space Mono,monospace;color:var(--text-dim);text-align:center">Envoyez des sons<br>depuis le Laboratoire</div>';
+    return;
+  }
+  samples.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'sample-item' + (activeSample && activeSample.id === s.id ? ' selected' : '');
+    el.innerHTML = `
+      <div class="sample-color" style="background:${s.color}"></div>
+      <div class="sample-name" title="${s.name}">${s.name}</div>
+      <div class="sample-del" data-id="${s.id}" title="Supprimer">✕</div>
+    `;
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('sample-del')) {
+        removeSample(s.id);
+      } else {
+        selectSample(s);
+        setTool('brush');
+      }
+    });
+    sampleList.appendChild(el);
+  });
+}
+
+function selectSample(s) {
+  activeSample = s;
+  // Désactiver le surligneur d'effet et repasser en pinceau
+  if (activeFx) {
+    activeFx = null;
+    ALL_FX.forEach(x => document.getElementById('fx-'+x).classList.remove('active'));
+  }
+  renderSampleList();
+  document.getElementById('st-sample').textContent = s ? s.name.toUpperCase() : 'AUCUN';
+  setTool('brush');
+}
+
+function removeSample(id) {
+  samples = samples.filter(s => s.id !== id);
+  strokes = strokes.filter(str => str.sampleId !== id);
+  if (activeSample && activeSample.id === id) activeSample = null;
+  renderSampleList();
+  redraw();
+}
+
+// ---- DRAG & DROP (géré dans le labo) ----
+
+// =============================================
+// OUTILS
+// =============================================
+function setTool(t) {
+  tool = t;
+  ['brush','eraser','zone'].forEach(x => {
+    const el = document.getElementById('tool-'+x);
+    if (el) el.classList.toggle('active', x === t);
+  });
+  if (t !== 'zone') { zoneRect = null; zoneStrokes = []; updateCopyBtn(); }
+  canvas.style.cursor = t === 'eraser' ? 'cell' : 'crosshair';
+  document.getElementById('st-tool').textContent = {brush:'PINCEAU', eraser:'GOMME', zone:'ZONE'}[t] || t.toUpperCase();
+  // Sync toolbar mobile
+  ['brush','eraser','zone'].forEach(x => {
+    const el = document.getElementById('mob-'+x);
+    if (el) el.classList.toggle('active', x === t);
+  });
+}
+
+document.getElementById('tool-brush').addEventListener('click', () => setTool('brush'));
+document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
+document.getElementById('tool-zone').addEventListener('click', () => setTool('zone'));
+
+function updateCopyBtn() {
+  document.getElementById('btn-copy').disabled = zoneStrokes.length === 0;
+  document.getElementById('btn-paste').disabled = clipboard.length === 0;
+}
+
+function copyZone() {
+  if (!zoneStrokes.length) return;
+  clipboard = JSON.parse(JSON.stringify(zoneStrokes));
+  document.getElementById('btn-paste').disabled = false;
+}
+
+function pasteZone() {
+  if (!clipboard.length) return;
+  saveUndo();
+  // Décaler de 30px en X et Y
+  const offset = 30 / zoom;
+  const pasted = clipboard.map(str => ({
+    ...str,
+    id: Date.now() + Math.random(),
+    points: str.points.map(p => ({ x: p.x + offset, y: p.y + offset }))
+  }));
+  strokes.push(...pasted);
+  // Garder la zone collée sélectionnée et calculer son rectangle englobant
+  zoneStrokes = pasted;
+  const allPts = pasted.flatMap(s => s.points);
+  const x1 = Math.min(...allPts.map(p => p.x));
+  const x2 = Math.max(...allPts.map(p => p.x));
+  const y1 = Math.min(...allPts.map(p => p.y));
+  const y2 = Math.max(...allPts.map(p => p.y));
+  zoneRect = { x1, y1, x2, y2 };
+  // Basculer en mode zone pour permettre le déplacement immédiat
+  setTool('zone');
+  updateCopyBtn();
+  redraw(); updateStatus();
+}
+
+document.getElementById('btn-copy').addEventListener('click', copyZone);
+document.getElementById('btn-paste').addEventListener('click', pasteZone);
+
+// Undo / Redo buttons
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+
+// Rewind
+document.getElementById('btn-rewind').addEventListener('click', () => {
+  stopPlayback();
+  scrollWrapper.scrollLeft = 0;
+});
+
+// FX Highlighters
+const ALL_FX = ['hp','lp','fi','fo'];
+ALL_FX.forEach(fx => {
+  document.getElementById('fx-'+fx).addEventListener('click', () => {
+    activeFx = activeFx === fx ? null : fx;
+    ALL_FX.forEach(x => {
+      document.getElementById('fx-'+x).classList.toggle('active', x === activeFx);
+    });
+    if (activeFx) setTool('brush');
+  });
+});
+
+// =============================================
+// DRAWING
+// =============================================
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  // Support touch et mouse
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - rect.left) / zoom,
+    y: (src.clientY - rect.top)  / zoom
+  };
+}
+
+// Pont touch → mouse pour le canvas
+function addTouchSupport(el) {
+  el.addEventListener('touchstart',  e => { e.preventDefault(); el.dispatchEvent(new MouseEvent('mousedown', touchToMouse(e))); }, { passive: false });
+  el.addEventListener('touchmove',   e => { e.preventDefault(); el.dispatchEvent(new MouseEvent('mousemove', touchToMouse(e))); }, { passive: false });
+  el.addEventListener('touchend',    e => { e.preventDefault(); el.dispatchEvent(new MouseEvent('mouseup',   touchToMouse(e))); }, { passive: false });
+  el.addEventListener('touchcancel', e => { e.preventDefault(); el.dispatchEvent(new MouseEvent('mouseup',   touchToMouse(e))); }, { passive: false });
+}
+function touchToMouse(e) {
+  const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || {};
+  return { clientX: t.clientX || 0, clientY: t.clientY || 0, bubbles: true, cancelable: true, button: 0 };
+}
+addTouchSupport(canvas);
+
+// Espacement de la grille en pixels (unités canvas non zoomées)
+function gridStep() {
+  return PIXELS_PER_SEC / 4; // quart de seconde par défaut
+}
+
+function snapToGrid(x, y) {
+  if (!snapEnabled) return { x, y };
+  const step = gridStep();
+  return {
+    x: Math.round(x / step) * step,
+    y  // Y libre : ne pas snapper la hauteur (pitch)
+  };
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 2) return;
+  const raw = getCanvasPos(e);
+
+  if (tool === 'eraser') {
+    saveUndo();
+    eraseAt(raw);
+    drawing = true;
+    return;
+  }
+
+  if (tool === 'zone') {
+    // Si on clique dans une zone déjà sélectionnée → déplacer en bloc
+    if (zoneRect && zoneStrokes.length > 0) {
+      const x1 = Math.min(zoneRect.x1, zoneRect.x2);
+      const x2 = Math.max(zoneRect.x1, zoneRect.x2);
+      const y1 = Math.min(zoneRect.y1, zoneRect.y2);
+      const y2 = Math.max(zoneRect.y1, zoneRect.y2);
+      if (raw.x >= x1 && raw.x <= x2 && raw.y >= y1 && raw.y <= y2) {
+        zoneDragState = { lastX: raw.x, lastY: raw.y };
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+        return;
+      }
+    }
+    // Sinon : nouveau rectangle
+    zoneRect = { x1: raw.x, y1: raw.y, x2: raw.x, y2: raw.y };
+    zoneStrokes = [];
+    zoneDragState = null;
+    zoneDrawing = true;
+    updateCopyBtn();
+    e.preventDefault();
+    return;
+  }
+
+  if (tool === 'brush') {
+    if (!activeSample && !activeFx) return;
+    const pos = snapEnabled ? snapToGrid(raw.x, raw.y) : raw;
+    if (activeFx) {
+      currentStroke = { id: Date.now(), sampleId: null, fx: [activeFx], points: [{ x: pos.x, y: pos.y }], isHighlight: true, color: getFxColor(activeFx) };
+    } else {
+      currentStroke = { id: Date.now(), sampleId: activeSample.id, color: activeSample.color, fx: [], points: [{ x: pos.x, y: pos.y }], isHighlight: false, reversed: false };
+    }
+    drawing = true;
+    e.preventDefault();
+  }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const raw = getCanvasPos(e);
+
+  // Déplacement en bloc de la zone sélectionnée
+  if (tool === 'zone' && zoneDragState) {
+    const dx = raw.x - zoneDragState.lastX;
+    const dy = raw.y - zoneDragState.lastY;
+    // Déplacer tous les tracés de la zone
+    zoneStrokes.forEach(str => {
+      str.points = str.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+    });
+    // Déplacer le rectangle
+    zoneRect.x1 += dx; zoneRect.x2 += dx;
+    zoneRect.y1 += dy; zoneRect.y2 += dy;
+    zoneDragState.lastX = raw.x;
+    zoneDragState.lastY = raw.y;
+    redraw();
+    return;
+  }
+
+  // Zone drawing (tracé du rectangle)
+  if (tool === 'zone' && zoneDrawing && zoneRect) {
+    zoneRect.x2 = raw.x;
+    zoneRect.y2 = raw.y;
+    redraw();
+    return;
+  }
+
+  // Curseur dans la zone → grab
+  if (tool === 'zone' && zoneRect && zoneStrokes.length > 0 && !zoneDrawing) {
+    const x1 = Math.min(zoneRect.x1, zoneRect.x2);
+    const x2 = Math.max(zoneRect.x1, zoneRect.x2);
+    const y1 = Math.min(zoneRect.y1, zoneRect.y2);
+    const y2 = Math.max(zoneRect.y1, zoneRect.y2);
+    canvas.style.cursor = (raw.x >= x1 && raw.x <= x2 && raw.y >= y1 && raw.y <= y2) ? 'grab' : 'crosshair';
+  }
+
+  if (!drawing) {
+    document.getElementById('st-pos').textContent = formatTime(posToTime(raw.x));
+    return;
+  }
+
+  if (tool === 'eraser') { eraseAt(raw); return; }
+  if (!currentStroke) return;
+
+  const pos = snapEnabled ? snapToGrid(raw.x, raw.y) : raw;
+  currentStroke.points.push({ x: pos.x, y: pos.y });
+  redraw();
+});
+
+canvas.addEventListener('mouseup', (e) => {
+  // Fin du déplacement de zone
+  if (tool === 'zone' && zoneDragState) {
+    saveUndo();
+    zoneDragState = null;
+    canvas.style.cursor = 'crosshair';
+    redraw();
+    return;
+  }
+
+  // Zone: finaliser la sélection
+  if (tool === 'zone' && zoneDrawing && zoneRect) {
+    zoneDrawing = false;
+    const x1 = Math.min(zoneRect.x1, zoneRect.x2);
+    const x2 = Math.max(zoneRect.x1, zoneRect.x2);
+    const y1 = Math.min(zoneRect.y1, zoneRect.y2);
+    const y2 = Math.max(zoneRect.y1, zoneRect.y2);
+    // Sélectionner les tracés dont au moins un point est dans le rectangle
+    zoneStrokes = strokes.filter(str =>
+      str.points.some(p => p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2)
+    );
+    updateCopyBtn();
+    redraw();
+    return;
+  }
+
+  if (!drawing) return;
+  drawing = false;
+
+  if (tool === 'brush' && currentStroke && currentStroke.points.length > 1) {
+    const firstX = currentStroke.points[0].x;
+    const lastX  = currentStroke.points[currentStroke.points.length - 1].x;
+    if (!currentStroke.isHighlight && lastX < firstX) currentStroke.reversed = true;
+    saveUndo();
+    strokes.push(currentStroke);
+    updateStatus();
+  }
+  currentStroke = null;
+  redraw();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (drawing && tool === 'brush' && currentStroke && currentStroke.points.length > 1) {
+    const firstX = currentStroke.points[0].x;
+    const lastX  = currentStroke.points[currentStroke.points.length - 1].x;
+    if (!currentStroke.isHighlight && lastX < firstX) currentStroke.reversed = true;
+    saveUndo();
+    strokes.push(currentStroke);
+    drawing = false;
+    currentStroke = null;
+    updateStatus();
+    redraw();
+  }
+  // Annuler drag si on quitte le canvas
+  if (dragState) { saveUndo(); dragState = null; }
+});
+
+function eraseAt(pos) {
+  const r = 20 / zoom;
+  const before = strokes.length;
+  strokes = strokes.filter(str => {
+    return !str.points.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < r);
+  });
+  if (strokes.length !== before) { redraw(); updateStatus(); }
+}
+
+function findStrokeAt(pos) {
+  const r = 10;
+  for (let i = strokes.length - 1; i >= 0; i--) {
+    const str = strokes[i];
+    for (const p of str.points) {
+      if (Math.hypot(p.x - pos.x, p.y - pos.y) < r) return str;
+    }
+  }
+  return null;
+}
+
+function getFxColor(fx) {
+  return {hp:'rgba(255,149,0,0.3)',lp:'rgba(124,58,237,0.3)',fi:'rgba(34,197,94,0.3)',fo:'rgba(244,63,94,0.3)'}[fx] || '#888';
+}
+
+// =============================================
+// DESSIN
+// =============================================
+function redraw() {
+  // Le canvas physique fait canvasWidth*zoom × CANVAS_HEIGHT*zoom
+  // On dessine en coordonnées logiques (zoom=1) via ctx.scale
+  canvas.width  = canvasWidth * zoom;
+  canvas.height = CANVAS_HEIGHT * zoom;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(zoom, zoom);
+
+  // Background
+  ctx.fillStyle = '#0a0a0b';
+  ctx.fillRect(0, 0, canvasWidth, CANVAS_HEIGHT);
+
+  // Grid
+  drawGrid();
+
+  // Rulers
+  drawRulers();
+
+  // Strokes
+  strokes.forEach(str => drawStroke(str, false));
+
+  // Current stroke
+  if (currentStroke) drawStroke(currentStroke, true);
+
+  // Selection highlight
+  if (selectedStroke) {
+    ctx.save();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    const pts = selectedStroke.points;
+    if (pts.length > 0) {
+      ctx.beginPath();
+      ctx.arc(pts[0].x, pts[0].y, 12, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Zone strokes highlight
+  if (zoneStrokes.length > 0) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232,255,58,0.6)';
+    ctx.lineWidth = 1.5 / zoom;
+    ctx.setLineDash([4, 4]);
+    zoneStrokes.forEach(str => {
+      const pts = str.points;
+      if (pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // Rectangle de sélection de zone
+  if (zoneRect) {
+    ctx.save();
+    const rx = Math.min(zoneRect.x1, zoneRect.x2);
+    const ry = Math.min(zoneRect.y1, zoneRect.y2);
+    const rw = Math.abs(zoneRect.x2 - zoneRect.x1);
+    const rh = Math.abs(zoneRect.y2 - zoneRect.y1);
+    ctx.strokeStyle = 'rgba(232,255,58,0.8)';
+    ctx.lineWidth = 1 / zoom;
+    ctx.setLineDash([6 / zoom, 4 / zoom]);
+    ctx.strokeRect(rx, ry, rw, rh);
+    ctx.fillStyle = 'rgba(232,255,58,0.05)';
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  updateStatus();
+}
+
+function drawGrid() {
+  const step = gridStep(); // coordonnées logiques, le scale s'occupe du zoom
+
+  // Lignes verticales fines (sous-divisions)
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < canvasWidth; x += step / 4) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
+  }
+  // Lignes verticales principales
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvasWidth; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
+  }
+
+  // Lignes horizontales fines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let y = step / 4; y < CANVAS_HEIGHT; y += step / 4) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasWidth, y); ctx.stroke();
+  }
+  // Lignes horizontales principales
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let y = step; y < CANVAS_HEIGHT; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvasWidth, y); ctx.stroke();
+  }
+
+  // Ligne centrale (pitch neutre)
+  const cy = CANVAS_HEIGHT / 2;
+  ctx.strokeStyle = 'rgba(232,255,58,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvasWidth, cy); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawRulers() {
+  rulers.forEach(rx => {
+    ctx.save();
+    ctx.strokeStyle = `rgba(232,255,58,${MARKER_ALPHA})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(rx, 0);
+    ctx.lineTo(rx, CANVAS_HEIGHT);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawStroke(str, isCurrent) {
+  const pts = str.points;
+  if (pts.length < 2) {
+    // Single point: draw dot
+    if (pts.length === 1) {
+      ctx.beginPath();
+      ctx.arc(pts[0].x, pts[0].y, 4, 0, Math.PI*2);
+      ctx.fillStyle = str.color;
+      ctx.fill();
+    }
+    return;
+  }
+
+  ctx.save();
+
+  if (str.isHighlight) {
+    // Highlighter — trait épais semi-transparent
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = str.color;
+    ctx.lineWidth = 28;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+    // Contour intérieur plus vif
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  } else {
+    // Sample stroke
+    const color = str.color;
+    const cy = canvas.height / 2;
+
+    // Calculate pitch profile for gradient
+    const minY = Math.min(...pts.map(p => p.y));
+    const maxY = Math.max(...pts.map(p => p.y));
+
+    // Glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 8;
+
+    // Main line with variable width
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Draw stroke with pitch-based color modulation
+    for (let i = 1; i < pts.length; i++) {
+      const t = i / pts.length;
+      const yNorm = 1 - (pts[i].y / canvas.height); // 0=bottom, 1=top
+      ctx.beginPath();
+      ctx.moveTo(pts[i-1].x, pts[i-1].y);
+      ctx.lineTo(pts[i].x, pts[i].y);
+      // Vary opacity by pitch
+      ctx.globalAlpha = 0.5 + 0.5 * yNorm;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3 + 2 * (1 - Math.abs(yNorm - 0.5) * 2);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // Start point circle
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, 5, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Flèche de fin (direction inversée si reversed)
+    const last = pts[pts.length-1];
+    const prev = pts[pts.length-2];
+    const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+    ctx.save();
+    ctx.translate(last.x, last.y);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-8, 4);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.restore();
+
+    // Badge ◀ si lecture inversée
+    if (str.reversed) {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Space Mono, monospace';
+      ctx.fillText('◀', pts[0].x - 16, pts[0].y + 4);
+    }
+
+    // FX badges (inclut effets hérités des surligneurs)
+    const allFx = getEffectiveStrokeFx(str);
+    if (allFx.length > 0) {
+      const bx = pts[0].x;
+      const by = pts[0].y - 16;
+      allFx.forEach((fx, i) => {
+        const fxColors = {hp:'#ff9500', lp:'#7c3aed', fi:'#22c55e', fo:'#f43f5e'};
+        const fxLabels = {hp:'HP', lp:'LP', fi:'FI', fo:'FO'};
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = fxColors[fx] || '#888';
+        ctx.font = 'bold 9px Space Mono, monospace';
+        ctx.fillText(fxLabels[fx] || fx, bx + i * 22, by);
+      });
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawRuler() {
+  const w = rulerCanvas.width;
+  const h = rulerCanvas.height;
+  const scrollX = scrollWrapper.scrollLeft;
+  const step = gridStep() * zoom; // px écran par division principale
+
+  rulerCtx.clearRect(0, 0, w, h);
+  rulerCtx.fillStyle = '#111114';
+  rulerCtx.fillRect(0, 0, w, h);
+  rulerCtx.strokeStyle = '#2a2a35';
+  rulerCtx.beginPath();
+  rulerCtx.moveTo(0, h - 1);
+  rulerCtx.lineTo(w, h - 1);
+  rulerCtx.stroke();
+
+  rulerCtx.fillStyle = '#6b6b7a';
+  rulerCtx.font = '9px Space Mono, monospace';
+
+  const startDiv = Math.floor(scrollX / step);
+  const endDiv   = Math.ceil((scrollX + w) / step) + 1;
+
+  for (let d = startDiv; d <= endDiv; d++) {
+    const x = d * step - scrollX;
+    const t = d * gridStep() / PIXELS_PER_SEC;
+    const sec = Math.floor(t);
+    const dec = Math.round((t - sec) * 10);
+    const label = `${sec}.${dec}`;
+
+    rulerCtx.strokeStyle = '#2a2a35';
+    rulerCtx.lineWidth = 1;
+    rulerCtx.beginPath();
+    rulerCtx.moveTo(x, h - 8);
+    rulerCtx.lineTo(x, h);
+    rulerCtx.stroke();
+    if (x > 0) rulerCtx.fillText(label, x + 2, h - 10);
+
+    for (let sub = 1; sub < 4; sub++) {
+      const sx = x + (step / 4) * sub;
+      rulerCtx.strokeStyle = '#1f1f28';
+      rulerCtx.lineWidth = 1;
+      rulerCtx.beginPath();
+      rulerCtx.moveTo(sx, h - 4);
+      rulerCtx.lineTo(sx, h);
+      rulerCtx.stroke();
+    }
+  }
+
+  // Playhead sur ruler
+  if (isPlaying) {
+    const px = playheadPos * zoom - scrollX;
+    rulerCtx.strokeStyle = '#e8ff3a';
+    rulerCtx.lineWidth = 2;
+    rulerCtx.beginPath();
+    rulerCtx.moveTo(px, 0);
+    rulerCtx.lineTo(px, h);
+    rulerCtx.stroke();
+  }
+}
+
+// =============================================
+// INTERSECTION SURLIGNEURS → TRACÉS
+// =============================================
+function segmentsIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1x = bx - ax, d1y = by - ay;
+  const d2x = dx - cx, d2y = dy - cy;
+  const cross = d1x * d2y - d1y * d2x;
+  if (Math.abs(cross) < 1e-10) return false;
+  const t = ((cx - ax) * d2y - (cy - ay) * d2x) / cross;
+  const u = ((cx - ax) * d1y - (cy - ay) * d1x) / cross;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+
+function pointToSegmentDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx*dx + dy*dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / lenSq));
+  return Math.hypot(px - (ax + t*dx), py - (ay + t*dy));
+}
+
+function strokePolylineIntersects(strokeA, strokeB) {
+  // Deux modes : croisement géométrique OU proximité (surligneur posé sur le tracé)
+  const a = strokeA.points;
+  const b = strokeB.points;
+  if (a.length < 1 || b.length < 1) return false;
+  const PROX = 24; // pixels de tolérance
+
+  // 1. Intersection stricte segment à segment
+  for (let i = 0; i < a.length - 1; i++) {
+    for (let j = 0; j < b.length - 1; j++) {
+      if (segmentsIntersect(a[i].x, a[i].y, a[i+1].x, a[i+1].y,
+                            b[j].x, b[j].y, b[j+1].x, b[j+1].y)) return true;
+    }
+  }
+  // 2. Proximité : un point de B proche d'un segment de A
+  for (let j = 0; j < b.length; j++) {
+    for (let i = 0; i < a.length - 1; i++) {
+      if (pointToSegmentDist(b[j].x, b[j].y, a[i].x, a[i].y, a[i+1].x, a[i+1].y) < PROX) return true;
+    }
+  }
+  return false;
+}
+
+function getEffectiveStrokeFx(str) {
+  // Retourne les effets du tracé + ceux des surligneurs qui le croisent
+  const fx = new Set(str.fx || []);
+  const highlights = strokes.filter(s => s.isHighlight);
+  for (const hl of highlights) {
+    if (strokePolylineIntersects(str, hl)) {
+      (hl.fx || []).forEach(f => fx.add(f));
+    }
+  }
+  return [...fx];
+}
+
+function posToTime(x) { return x / (PIXELS_PER_SEC * zoom); }
+function timeToPos(t) { return t * PIXELS_PER_SEC * zoom; }
+
+function formatTime(t) {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  const ms = Math.floor((t % 1) * 1000);
+  return `${m}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+}
+
+function getStrokePitchAtX(str, x) {
+  // Parcourir les points dans l'ordre du tracé.
+  // Pour un trait vertical de départ, plusieurs points ont le même X :
+  // on prend le DERNIER point ayant ce X minimal (= fin du trait vertical)
+  // afin que le pitch vertical soit immédiatement appliqué.
+  const pts = str.points;
+  const startY = pts[0].y;
+
+  // Trouver le premier point dont le X dépasse x
+  let chosen = pts[0];
+  for (let i = 0; i < pts.length; i++) {
+    chosen = pts[i];
+    if (pts[i].x >= x) break;
+  }
+  // Si plusieurs points consécutifs ont le même X (trait vertical),
+  // avancer jusqu'au dernier d'entre eux
+  const chosenX = chosen.x;
+  for (let i = pts.indexOf(chosen) + 1; i < pts.length; i++) {
+    if (pts[i].x === chosenX) chosen = pts[i];
+    else break;
+  }
+
+  const dy = chosen.y - startY;
+  const norm = -dy / (CANVAS_HEIGHT / 2);
+  const clamped = Math.max(-1, Math.min(1, norm));
+  return Math.pow(2, clamped * PITCH_RANGE / 2);
+}
+
+function getStrokeDuration(str) {
+  if (str.points.length < 2) return 0.1;
+  const xs = str.points.map(p => p.x);
+  const dx = (Math.max(...xs) - Math.min(...xs));
+  return Math.max(0.05, dx / (PIXELS_PER_SEC * zoom));
+}
+
+async function startPlayback() {
+  ensureAudioCtx();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  stopPlayback();
+  isPlaying = true;
+  playStartTime = audioCtx.currentTime;
+  playStartPos = 0;
+
+  document.getElementById('btn-play').classList.add('active');
+  playhead.classList.add('visible');
+
+  // Schedule all strokes
+  strokes.forEach(str => {
+    if (!str.sampleId || str.isHighlight) return;
+    const sample = samples.find(s => s.id === str.sampleId);
+    if (!sample || !sample.audioBuffer) return;
+
+    const startX = Math.min(...str.points.map(p => p.x));
+    const delay = posToTime(startX);
+    const duration = getStrokeDuration(str);
+    const pitch = getStrokePitchAtX(str, startX);
+
+    scheduleSource(sample.audioBuffer, delay, duration, pitch, str);
+  });
+
+  animatePlayhead();
+}
+
+function buildAudioChain(actx, audioBuffer, delay, duration, pitch, str, dest, clockOffset) {
+  // clockOffset = actx.currentTime au moment où delay=0 commence
+  if (clockOffset === undefined) clockOffset = actx.currentTime;
+
+  const src = actx.createBufferSource();
+
+  // Lecture à l'envers
+  if (str && str.reversed) {
+    const buf = audioBuffer;
+    const rev = actx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      rev.copyToChannel(buf.getChannelData(ch).slice().reverse(), ch);
+    }
+    src.buffer = rev;
+  } else {
+    src.buffer = audioBuffer;
+  }
+
+  // --- Pitch automation (variation relative au point de départ) ---
+  if (str && str.points && str.points.length > 1) {
+    const pts = str.reversed ? [...str.points].reverse() : str.points;
+    src.playbackRate.setValueAtTime(getStrokePitchAtX(str, pts[0].x), clockOffset + delay);
+    pts.forEach((p, i) => {
+      const t = i / (pts.length - 1) * duration;
+      src.playbackRate.linearRampToValueAtTime(getStrokePitchAtX(str, p.x), clockOffset + delay + t);
+    });
+  } else {
+    src.playbackRate.value = pitch;
+  }
+  src.loop = duration > audioBuffer.duration / Math.max(0.01, pitch);
+
+  // --- Plage temporelle d'un surligneur sur ce tracé ---
+  const strMinX = str ? Math.min(...str.points.map(p => p.x)) : 0;
+  const strMaxX = str ? Math.max(...str.points.map(p => p.x)) : 1;
+  const strSpan = strMaxX - strMinX || 1;
+
+  function hlRange(hl) {
+    const hlMinX = Math.min(...hl.points.map(p => p.x));
+    const hlMaxX = Math.max(...hl.points.map(p => p.x));
+    const r0 = Math.max(0, Math.min(1, (hlMinX - strMinX) / strSpan));
+    const r1 = Math.max(0, Math.min(1, (hlMaxX - strMinX) / strSpan));
+    return {
+      t0: clockOffset + delay + r0 * duration,
+      t1: clockOffset + delay + r1 * duration
+    };
+  }
+
+  // --- Gain principal + fondus (un nœud par surligneur) ---
+  const gainMain = actx.createGain();
+  gainMain.gain.value = 1;
+  let lastNode = gainMain;
+
+  if (str) {
+    const hlsFI = strokes.filter(s => s.isHighlight && (s.fx||[]).includes('fi') && strokePolylineIntersects(str, s));
+    const hlsFO = strokes.filter(s => s.isHighlight && (s.fx||[]).includes('fo') && strokePolylineIntersects(str, s));
+
+    if (hlsFI.length > 0) {
+      const gFI = actx.createGain();
+      gFI.gain.value = 1;
+      hlsFI.forEach(hl => {
+        const { t0, t1 } = hlRange(hl);
+        // Avant t0 : silence, puis montée progressive
+        gFI.gain.setValueAtTime(0.0001, clockOffset);
+        gFI.gain.setValueAtTime(0.0001, t0);
+        gFI.gain.linearRampToValueAtTime(1, Math.max(t0 + 0.01, t1));
+      });
+      lastNode.connect(gFI);
+      lastNode = gFI;
+    }
+
+    if (hlsFO.length > 0) {
+      const gFO = actx.createGain();
+      gFO.gain.value = 1;
+      hlsFO.forEach(hl => {
+        const { t0, t1 } = hlRange(hl);
+        // Avant t0 : plein volume, puis descente progressive
+        gFO.gain.setValueAtTime(1, clockOffset);
+        gFO.gain.setValueAtTime(1, t0);
+        gFO.gain.linearRampToValueAtTime(0.0001, Math.max(t0 + 0.01, t1));
+      });
+      lastNode.connect(gFO);
+      lastNode = gFO;
+    }
+  }
+
+  // --- Filtre HP (neutre par défaut, actif sur la plage surlignée) ---
+  const hpFilter = actx.createBiquadFilter();
+  hpFilter.type = 'highpass';
+  hpFilter.frequency.value = 20;
+  hpFilter.Q.value = 0.7;
+
+  if (str) {
+    strokes.filter(s => s.isHighlight && (s.fx||[]).includes('hp') && strokePolylineIntersects(str, s))
+      .forEach(hl => {
+        const { t0, t1 } = hlRange(hl);
+        hpFilter.frequency.setValueAtTime(20,   Math.max(clockOffset, t0 - 0.01));
+        hpFilter.frequency.linearRampToValueAtTime(1200, t0 + 0.02);
+        hpFilter.frequency.setValueAtTime(1200,  t1);
+        hpFilter.frequency.linearRampToValueAtTime(20,   t1 + 0.02);
+      });
+  }
+
+  // --- Filtre LP (neutre par défaut, actif sur la plage surlignée) ---
+  const lpFilter = actx.createBiquadFilter();
+  lpFilter.type = 'lowpass';
+  lpFilter.frequency.value = 22050;
+  lpFilter.Q.value = 0.7;
+
+  if (str) {
+    strokes.filter(s => s.isHighlight && (s.fx||[]).includes('lp') && strokePolylineIntersects(str, s))
+      .forEach(hl => {
+        const { t0, t1 } = hlRange(hl);
+        lpFilter.frequency.setValueAtTime(22050, Math.max(clockOffset, t0 - 0.01));
+        lpFilter.frequency.linearRampToValueAtTime(350,   t0 + 0.02);
+        lpFilter.frequency.setValueAtTime(350,   t1);
+        lpFilter.frequency.linearRampToValueAtTime(22050, t1 + 0.02);
+      });
+  }
+
+  // --- Câblage : src → gainMain → [gFI →] [gFO →] hpFilter → lpFilter → dest ---
+  src.connect(gainMain);
+  lastNode.connect(hpFilter);
+  hpFilter.connect(lpFilter);
+  lpFilter.connect(dest);
+
+  return src;
+}
+
+function scheduleSource(audioBuffer, delay, duration, pitch, str) {
+  const clock = audioCtx.currentTime;
+  const src = buildAudioChain(audioCtx, audioBuffer, delay, duration, pitch, str, canvasMasterGain, clock);
+  src.start(clock + delay);
+  src.stop(clock + delay + duration + 0.1);
+  scheduledSources.push(src);
+}
+
+function stopPlayback() {
+  isPlaying = false;
+  document.getElementById('btn-play').classList.remove('active');
+  playhead.classList.remove('visible');
+  scheduledSources.forEach(src => { try { src.stop(); } catch(e) {} });
+  scheduledSources = [];
+  cancelAnimationFrame(playAnimFrame);
+  redraw();
+}
+
+function animatePlayhead() {
+  if (!isPlaying) return;
+  const elapsed = audioCtx.currentTime - playStartTime;
+  playheadPos = timeToPos(elapsed) / zoom * zoom;
+
+  const px = playheadPos * zoom;
+  playhead.style.left = px + 'px';
+  playhead.style.height = scrollWrapper.clientHeight + 'px';
+
+  // Auto-scroll
+  const viewLeft = scrollWrapper.scrollLeft;
+  const viewRight = viewLeft + scrollWrapper.clientWidth;
+  if (px > viewRight - 100) scrollWrapper.scrollLeft = px - 100;
+
+  drawRuler();
+
+  // Check end
+  const maxX = strokes.length > 0 ? Math.max(...strokes.flatMap(s => s.points.map(p => p.x))) : 0;
+  const totalDur = posToTime(maxX) + 1;
+  if (elapsed > totalDur) {
+    if (isLooping) {
+      stopPlayback();
+      setTimeout(startPlayback, 50);
+    } else {
+      stopPlayback();
+    }
+    return;
+  }
+
+  playAnimFrame = requestAnimationFrame(animatePlayhead);
+}
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (isPlaying) stopPlayback(); else startPlayback();
+});
+document.getElementById('btn-stop').addEventListener('click', stopPlayback);
+document.getElementById('btn-loop').addEventListener('click', () => {
+  isLooping = !isLooping;
+  document.getElementById('btn-loop').classList.toggle('active', isLooping);
+});
+
+
+// =============================================
+// CONTEXT MENU
+// =============================================
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  ctxMenuStroke = findStrokeAt(pos);
+  if (!ctxMenuStroke) return;
+  selectedStroke = ctxMenuStroke;
+  ctxMenu.style.display = 'block';
+  ctxMenu.style.left = e.clientX + 'px';
+  ctxMenu.style.top = e.clientY + 'px';
+  redraw();
+});
+
+document.addEventListener('click', () => { ctxMenu.style.display = 'none'; });
+
+document.getElementById('ctx-delete').addEventListener('click', () => {
+  if (!ctxMenuStroke) return;
+  strokes = strokes.filter(s => s.id !== ctxMenuStroke.id);
+  selectedStroke = null;
+  redraw();
+  updateStatus();
+});
+
+['hp','lp','fi','fo'].forEach(fx => {
+  document.getElementById('ctx-fx-'+fx).addEventListener('click', () => {
+    if (!ctxMenuStroke) return;
+    if (!ctxMenuStroke.fx.includes(fx)) ctxMenuStroke.fx.push(fx);
+    redraw();
+  });
+});
+
+// =============================================
+// ZOOM & CANVAS SIZE
+// =============================================
+document.getElementById('btn-zoom-in').addEventListener('click', () => {
+  zoom = Math.min(4, zoom * 1.25);
+  redraw(); drawRuler();
+});
+document.getElementById('btn-zoom-out').addEventListener('click', () => {
+  zoom = Math.max(0.25, zoom / 1.25);
+  redraw(); drawRuler();
+});
+document.getElementById('btn-extend').addEventListener('click', () => {
+  canvasWidth += 1500;
+  redraw();
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  saveUndo();
+  strokes = [];
+  selectedStroke = null;
+  dragState = null;
+  redraw();
+  updateStatus();
+});
+
+document.getElementById('snap-cb').addEventListener('change', (e) => {
+  snapEnabled = e.target.checked;
+});
+
+// =============================================
+// MOBILE
+// =============================================
+const overlay = document.getElementById('mobile-overlay');
+
+function isMobile() { return window.innerWidth <= 700; }
+
+// Hamburger → ouvre un menu simple
+document.getElementById('btn-hamburger').addEventListener('click', () => {
+  // Sur mobile en mode atelier : ouvre le panneau effets
+  if (document.getElementById('panel-atelier').classList.contains('visible')) {
+    toggleMobilePanel('effects');
+  }
+});
+
+function toggleMobilePanel(which) {
+  const reservoir = document.getElementById('reservoir-panel');
+  const effects   = document.querySelector('.effects-panel');
+  if (which === 'reservoir') {
+    const open = reservoir.classList.toggle('open');
+    effects.classList.remove('open');
+    overlay.classList.toggle('open', open);
+  } else {
+    const open = effects.classList.toggle('open');
+    reservoir.classList.remove('open');
+    overlay.classList.toggle('open', open);
+  }
+}
+
+overlay.addEventListener('click', () => {
+  document.getElementById('reservoir-panel').classList.remove('open');
+  document.querySelector('.effects-panel').classList.remove('open');
+  overlay.classList.remove('open');
+});
+
+// Toolbar mobile
+document.getElementById('mob-rewind').addEventListener('click', () => { stopPlayback(); scrollWrapper.scrollLeft = 0; });
+document.getElementById('mob-play').addEventListener('click',   () => { isPlaying ? stopPlayback() : startPlayback(); });
+document.getElementById('mob-stop').addEventListener('click',   stopPlayback);
+document.getElementById('mob-loop').addEventListener('click',   () => {
+  isLooping = !isLooping;
+  document.getElementById('mob-loop').classList.toggle('active', isLooping);
+  document.getElementById('btn-loop').classList.toggle('active', isLooping);
+});
+
+['brush','eraser','zone'].forEach(t => {
+  document.getElementById('mob-'+t).addEventListener('click', () => {
+    setTool(t);
+    // Sync boutons mob
+    ['brush','eraser','zone'].forEach(x => document.getElementById('mob-'+x).classList.toggle('active', x === t));
+  });
+});
+
+document.getElementById('mob-reservoir').addEventListener('click', () => toggleMobilePanel('reservoir'));
+document.getElementById('mob-effects').addEventListener('click',   () => toggleMobilePanel('effects'));
+
+function syncMobTools(t) {
+  ['brush','eraser','zone'].forEach(x => {
+    const el = document.getElementById('mob-'+x);
+    if (el) el.classList.toggle('active', x === t);
+  });
+}
+
+// Afficher/cacher toolbar selon le mode
+function updateMobileUI(panel) {
+  const tb = document.getElementById('mobile-toolbar');
+  if (isMobile() && panel === 'atelier') {
+    tb.style.display = 'flex';
+  } else {
+    tb.style.display = 'none';
+  }
+}
+
+// Touch support pour les curseurs waveform du labo
+function addTouchToCursor(el, which) {
+  el.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    const move = ev => {
+      ev.preventDefault();
+      if (!laboSelected) return;
+      const t = ev.touches[0];
+      const rect = wfContainer.getBoundingClientRect();
+      let ratio = (t.clientX - rect.left) / rect.width;
+      ratio = Math.max(0, Math.min(1, ratio));
+      if (which === 'start') laboSelected.startRatio = Math.min(ratio, laboSelected.endRatio - 0.01);
+      else laboSelected.endRatio = Math.max(ratio, laboSelected.startRatio + 0.01);
+      laboDrawWaveform();
+    };
+    const up = () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up); };
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', up);
+  }, { passive: true });
+}
+addTouchToCursor(document.getElementById('cursor-start'), 'start');
+addTouchToCursor(document.getElementById('cursor-end'),   'end');
+document.getElementById('toggle-reservoir').addEventListener('click', () => {
+  const panel = document.getElementById('reservoir-panel');
+  const btn   = document.getElementById('toggle-reservoir');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '›' : '‹';
+  setTimeout(() => { canvasWidth = scrollWrapper.clientWidth; redraw(); drawRuler(); }, 220);
+});
+
+document.getElementById('toggle-effects').addEventListener('click', () => {
+  const panel = document.querySelector('.effects-panel');
+  const btn   = document.getElementById('toggle-effects');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '‹' : '›';
+  setTimeout(() => { canvasWidth = scrollWrapper.clientWidth; redraw(); drawRuler(); }, 220);
+});
+
+// =============================================
+// STATUS
+// =============================================
+function updateStatus() {
+  document.getElementById('st-strokes').textContent = strokes.length;
+  if (strokes.length > 0) {
+    const maxX = Math.max(...strokes.flatMap(s => s.points.map(p => p.x)));
+    document.getElementById('st-dur').textContent = formatTime(posToTime(maxX)).split('.')[0];
+  } else {
+    document.getElementById('st-dur').textContent = '0:00';
+  }
+}
+
+// =============================================
+// EXPORT JPEG
+// =============================================
+document.getElementById('btn-export-img').addEventListener('click', () => {
+  // Add watermark
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = '#e8ff3a';
+  ctx.font = 'bold 14px Bebas Neue, sans-serif';
+  ctx.fillText('QUASI OBJET', 16, canvas.height - 16);
+  ctx.restore();
+
+  const link = document.createElement('a');
+  link.download = 'beton-sonore-partition.jpg';
+  link.href = canvas.toDataURL('image/jpeg', 0.95);
+  link.click();
+  redraw();
+});
+
+// =============================================
+// EXPORT MP3
+// =============================================
+document.getElementById('btn-export-mp3').addEventListener('click', () => {
+  document.getElementById('modal-export').classList.add('open');
+});
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('modal-export').classList.remove('open');
+});
+document.getElementById('modal-confirm').addEventListener('click', async () => {
+  document.getElementById('modal-export').classList.remove('open');
+  await exportMp3();
+});
+
+async function exportMp3() {
+  ensureAudioCtx();
+  const sonores = strokes.filter(s => s.sampleId && !s.isHighlight);
+  if (sonores.length === 0) { alert('Aucun tracé sonore à exporter.'); return; }
+
+  const maxX = Math.max(...sonores.flatMap(s => s.points.map(p => p.x)));
+  const totalDur = posToTime(maxX) + 2;
+
+  const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalDur * 44100), 44100);
+
+  for (const str of sonores) {
+    const sample = samples.find(s => s.id === str.sampleId);
+    if (!sample || !sample.audioBuffer) continue;
+
+    const startX = Math.min(...str.points.map(p => p.x));
+    const delay = posToTime(startX);
+    const duration = getStrokeDuration(str);
+    const pitch = getStrokePitchAtX(str, startX);
+
+    const src = buildAudioChain(offlineCtx, sample.audioBuffer, delay, duration, pitch, str, offlineCtx.destination, 0);
+    src.start(delay);
+    src.stop(delay + duration + 0.1);
+  }
+
+  try {
+    const renderedBuffer = await offlineCtx.startRendering();
+    const wavBlob = bufferToWave(renderedBuffer);
+    const url = URL.createObjectURL(wavBlob);
+    const link = document.createElement('a');
+    link.download = 'beton-sonore-composition.wav';
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Erreur lors du rendu: ' + e.message);
+  }
+}
+
+function bufferToWave(buffer) {
+  const numChannels = buffer.numberOfChannels;
+  const length = buffer.length * numChannels * 2 + 44;
+  const arrayBuffer = new ArrayBuffer(length);
+  const view = new DataView(arrayBuffer);
+  const channels = [];
+  let offset = 0;
+
+  function writeString(s) { for (let i = 0; i < s.length; i++) { view.setUint8(offset++, s.charCodeAt(i)); } }
+  function writeUint32(v) { view.setUint32(offset, v, true); offset += 4; }
+  function writeUint16(v) { view.setUint16(offset, v, true); offset += 2; }
+
+  writeString('RIFF');
+  writeUint32(length - 8);
+  writeString('WAVE');
+  writeString('fmt ');
+  writeUint32(16);
+  writeUint16(1);
+  writeUint16(numChannels);
+  writeUint32(buffer.sampleRate);
+  writeUint32(buffer.sampleRate * numChannels * 2);
+  writeUint16(numChannels * 2);
+  writeUint16(16);
+  writeString('data');
+  writeUint32(buffer.length * numChannels * 2);
+
+  for (let i = 0; i < numChannels; i++) channels.push(buffer.getChannelData(i));
+
+  for (let i = 0; i < buffer.length; i++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const s = Math.max(-1, Math.min(1, channels[ch][i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+// =============================================
+// KEYBOARD SHORTCUTS
+// =============================================
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (isPlaying || rhPlaying) {
+      stopPlayback();
+      rhStop();
+    } else {
+      startPlayback();
+      rhStart();
+    }
+  }
+  if (e.code === 'KeyB') setTool('brush');
+  if (e.code === 'KeyE') setTool('eraser');
+  if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey) setTool('zone');
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || (e.shiftKey && e.code === 'KeyZ'))) { e.preventDefault(); redo(); }
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') { e.preventDefault(); copyZone(); }
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV') { e.preventDefault(); pasteZone(); }
+  if (e.code === 'Escape') {
+    selectedStroke = null;
+    dragState = null;
+    activeFx = null;
+    zoneRect = null;
+    zoneStrokes = [];
+    zoneDragState = null;
+    updateCopyBtn();
+    ALL_FX.forEach(x => document.getElementById('fx-'+x).classList.remove('active'));
+    redraw();
+  }
+  if ((e.code === 'Delete' || e.code === 'Backspace') && selectedStroke) {
+    saveUndo();
+    strokes = strokes.filter(s => s.id !== selectedStroke.id);
+    selectedStroke = null;
+    redraw(); updateStatus();
+  }
+  // Supprimer les tracés de la zone sélectionnée
+  if ((e.code === 'Delete' || e.code === 'Backspace') && zoneStrokes.length && !selectedStroke) {
+    saveUndo();
+    const ids = new Set(zoneStrokes.map(s => s.id));
+    strokes = strokes.filter(s => !ids.has(s.id));
+    zoneStrokes = [];
+    zoneRect = null;
+    updateCopyBtn();
+    redraw(); updateStatus();
+  }
+});
+
+// Initial draw
+setTimeout(() => {
+  initCanvas();
+  updateStatus();
+  laboResizeWaveform();
+}, 1000);
+
+// =============================================
+// SWITCH LABO / ATELIER
+// =============================================
+function switchPanel(name) {
+  document.getElementById('panel-atelier').classList.toggle('visible', name === 'atelier');
+  document.getElementById('panel-labo').classList.toggle('visible', name === 'labo');
+  document.getElementById('switch-atelier').classList.toggle('active', name === 'atelier');
+  document.getElementById('switch-labo').classList.toggle('active', name === 'labo');
+  document.getElementById('atelier-controls').style.display = name === 'atelier' ? 'flex' : 'none';
+  // Fermer les drawers mobiles
+  document.getElementById('reservoir-panel').classList.remove('open');
+  document.querySelector('.effects-panel').classList.remove('open');
+  overlay.classList.remove('open');
+  updateMobileUI(name);
+  if (name === 'atelier') {
+    requestAnimationFrame(() => {
+      if (scrollWrapper.clientWidth > 0) {
+        canvasWidth = scrollWrapper.clientWidth;
+        rulerCanvas.width = scrollWrapper.clientWidth;
+        redraw();
+        drawRuler();
+      }
+    });
+  }
+  if (name === 'labo') {
+    stopPlayback();
+    requestAnimationFrame(() => laboResizeWaveform());
+  }
+}
+document.getElementById('switch-atelier').addEventListener('click', () => switchPanel('atelier'));
+document.getElementById('switch-labo').addEventListener('click', () => switchPanel('labo'));
+
+// =============================================
+// LABORATOIRE
+// =============================================
+let laboSounds = [];      // {id, name, file, audioBuffer, startRatio, endRatio, volume, pitch, attack, release}
+let laboSelected = null;  // son actif dans le labo
+let laboPlaying = false;
+let laboSrc = null;
+let mediaRecorder = null;
+let recordChunks = [];
+
+const wfCanvas   = document.getElementById('waveform-canvas');
+const wfCtx      = wfCanvas.getContext('2d');
+const wfContainer= document.getElementById('waveform-container');
+const wfPlaceholder = document.getElementById('waveform-placeholder');
+const cursorStart= document.getElementById('cursor-start');
+const cursorEnd  = document.getElementById('cursor-end');
+const wfSelection= document.getElementById('waveform-selection');
+const wfPlayhead = document.getElementById('waveform-playhead');
+
+// --- Chargement fichiers labo ---
+document.getElementById('labo-drop-zone').addEventListener('click', () => document.getElementById('labo-file-input').click());
+document.getElementById('labo-file-input').addEventListener('change', e => {
+  [...e.target.files].forEach(laboAddFile);
+  e.target.value = '';
+});
+document.getElementById('labo-drop-zone').addEventListener('dragover', e => { e.preventDefault(); document.getElementById('labo-drop-zone').classList.add('drag-over'); });
+document.getElementById('labo-drop-zone').addEventListener('dragleave', () => document.getElementById('labo-drop-zone').classList.remove('drag-over'));
+document.getElementById('labo-drop-zone').addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('labo-drop-zone').classList.remove('drag-over');
+  [...e.dataTransfer.files].forEach(f => { if (f.type.startsWith('audio/')) laboAddFile(f); });
+});
+
+async function laboAddFile(file) {
+  ensureAudioCtx();
+  let audioBuffer = null;
+  try {
+    const ab = await file.arrayBuffer();
+    audioBuffer = await audioCtx.decodeAudioData(ab);
+  } catch(e) { console.warn('Decode error', e); return; }
+  const id = Date.now() + Math.random();
+  const name = file.name.replace(/\.[^/.]+$/,'').substring(0,22);
+  const sound = { id, name, file, audioBuffer, startRatio:0, endRatio:1, volume:100, pitch:0, attack:0, release:0 };
+  laboSounds.push(sound);
+  laboRenderList();
+  laboSelectSound(sound);
+}
+
+function laboRenderList() {
+  const el = document.getElementById('labo-list');
+  el.innerHTML = '';
+  laboSounds.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'labo-item' + (laboSelected && laboSelected.id === s.id ? ' selected' : '');
+    const sentBadge = s.sent ? `<div title="Envoyé vers l'atelier" style="color:#22c55e;font-size:12px;flex-shrink:0">✓</div>` : '';
+    div.innerHTML = `
+      <div class="labo-item-dot" style="${s.sent ? 'background:#22c55e' : ''}"></div>
+      <div class="labo-item-name" title="${s.name}">${s.name}</div>
+      ${sentBadge}
+      <div class="labo-item-dup" data-id="${s.id}" title="Dupliquer" style="opacity:0;color:var(--accent3);cursor:pointer;font-size:12px;flex-shrink:0;padding:0 2px">⧉</div>
+      <div class="labo-item-del" data-id="${s.id}" title="Supprimer">✕</div>
+    `;
+    div.addEventListener('mouseenter', () => div.querySelector('.labo-item-dup').style.opacity = '0.7');
+    div.addEventListener('mouseleave', () => div.querySelector('.labo-item-dup').style.opacity = '0');
+    div.addEventListener('click', e => {
+      if (e.target.classList.contains('labo-item-del')) { laboRemove(s.id); return; }
+      if (e.target.classList.contains('labo-item-dup')) { laboDuplicate(s.id); return; }
+      laboSelectSound(s);
+    });
+    el.appendChild(div);
+  });
+}
+
+function laboDuplicate(id) {
+  const src = laboSounds.find(s => s.id === id);
+  if (!src) return;
+  // Copier le buffer audio échantillon par échantillon
+  const buf = src.audioBuffer;
+  const newBuf = audioCtx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    newBuf.copyToChannel(buf.getChannelData(ch).slice(), ch);
+  }
+  const copy = {
+    ...src,
+    id: Date.now() + Math.random(),
+    name: src.name.substring(0, 20) + ' copie',
+    audioBuffer: newBuf,
+    sent: false
+  };
+  // Insérer juste après l'original
+  const idx = laboSounds.findIndex(s => s.id === id);
+  laboSounds.splice(idx + 1, 0, copy);
+  laboRenderList();
+  laboSelectSound(copy);
+}
+
+function laboRemove(id) {
+  laboSounds = laboSounds.filter(s => s.id !== id);
+  if (laboSelected && laboSelected.id === id) { laboSelected = null; laboDrawWaveform(); }
+  laboRenderList();
+  document.getElementById('labo-btn-send').disabled = !laboSelected;
+}
+
+function laboSelectSound(s) {
+  laboSelected = s;
+  laboRenderList();
+  laboDrawWaveform();
+  laboUpdateKnobs();
+  laboUpdateInfo();
+  document.getElementById('labo-btn-send').disabled = false;
+  wfPlaceholder.style.display = 'none';
+}
+
+function laboUpdateInfo() {
+  if (!laboSelected) return;
+  const buf = laboSelected.audioBuffer;
+  document.getElementById('labo-info-dur').textContent = `DUR : ${buf.duration.toFixed(2)}s`;
+  document.getElementById('labo-info-sr').textContent  = `SR : ${buf.sampleRate}Hz`;
+}
+
+// --- Forme d'onde ---
+function laboResizeWaveform() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = wfContainer.clientWidth;
+  const h = wfContainer.clientHeight;
+  wfCanvas.width  = w * dpr;
+  wfCanvas.height = h * dpr;
+  wfCanvas.style.width  = w + 'px';
+  wfCanvas.style.height = h + 'px';
+  wfCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  laboDrawWaveform();
+}
+window.addEventListener('resize', () => { if (document.getElementById('panel-labo').classList.contains('visible')) laboResizeWaveform(); });
+
+function laboDrawWaveform() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = wfCanvas.width / dpr;   // dimensions CSS logiques
+  const H = wfCanvas.height / dpr;
+  wfCtx.clearRect(0, 0, W, H);
+
+  // Fond
+  wfCtx.fillStyle = '#13131a';
+  wfCtx.fillRect(0, 0, W, H);
+
+  if (!laboSelected || !laboSelected.audioBuffer) {
+    wfPlaceholder.style.display = 'flex';
+    laboUpdateCursors();
+    return;
+  }
+  wfPlaceholder.style.display = 'none';
+
+  const buf = laboSelected.audioBuffer;
+  const data = buf.getChannelData(0);
+  const totalSamples = data.length;
+  const step = Math.max(1, Math.ceil(totalSamples / W));
+  const cy = H / 2;
+  const s = laboSelected;
+  const startX = Math.round(s.startRatio * W);
+  const endX   = Math.round(s.endRatio   * W);
+
+  // ── 1. Waveform complète en gris sombre ──────────────────────────
+  for (let x = 0; x < W; x++) {
+    let mn = 0, mx = 0;
+    const base = Math.floor(x * totalSamples / W);
+    for (let j = 0; j < step; j++) {
+      const v = data[base + j] || 0;
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    wfCtx.strokeStyle = '#2e3040';
+    wfCtx.lineWidth = 1;
+    wfCtx.beginPath();
+    wfCtx.moveTo(x + 0.5, cy + mn * cy * 0.92);
+    wfCtx.lineTo(x + 0.5, cy + mx * cy * 0.92);
+    wfCtx.stroke();
+  }
+
+  // ── 2. Voile sombre hors sélection ───────────────────────────────
+  wfCtx.fillStyle = 'rgba(13,13,20,0.72)';
+  if (startX > 0)  wfCtx.fillRect(0, 0, startX, H);
+  if (endX < W)    wfCtx.fillRect(endX, 0, W - endX, H);
+
+  // ── 3. Waveform sélectionnée en bleu vif ─────────────────────────
+  for (let x = startX; x < endX; x++) {
+    let mn = 0, mx = 0;
+    const base = Math.floor(x * totalSamples / W);
+    for (let j = 0; j < step; j++) {
+      const v = data[base + j] || 0;
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    wfCtx.strokeStyle = '#3adfff';
+    wfCtx.lineWidth = 1;
+    wfCtx.beginPath();
+    wfCtx.moveTo(x + 0.5, cy + mn * cy * 0.92);
+    wfCtx.lineTo(x + 0.5, cy + mx * cy * 0.92);
+    wfCtx.stroke();
+  }
+
+  // ── 4. Enveloppe attaque (diagonale verte, crescendo) ────────────
+  const selW      = endX - startX;
+  const attackPx  = Math.round((s.attack  / 100) * selW);
+  const releasePx = Math.round((s.release / 100) * selW);
+
+  if (attackPx > 2) {
+    // Triangle sombre sur la waveform bleue : masque ce qui est sous la rampe
+    wfCtx.save();
+    // Zone masquée à gauche de la diagonale
+    wfCtx.beginPath();
+    wfCtx.moveTo(startX, 0);
+    wfCtx.lineTo(startX + attackPx, 0);
+    wfCtx.lineTo(startX, H);
+    wfCtx.closePath();
+    wfCtx.fillStyle = 'rgba(13,13,20,0.55)';
+    wfCtx.fill();
+    // Ligne diagonale verte
+    wfCtx.beginPath();
+    wfCtx.moveTo(startX, H);
+    wfCtx.lineTo(startX + attackPx, 0);
+    wfCtx.strokeStyle = 'rgba(34,197,94,0.9)';
+    wfCtx.lineWidth = 2;
+    wfCtx.stroke();
+    wfCtx.restore();
+  }
+
+  // ── 5. Enveloppe sortie (diagonale rouge, decrescendo) ───────────
+  if (releasePx > 2) {
+    wfCtx.save();
+    // Zone masquée : coin haut-droit (au-dessus de la diagonale descendante)
+    wfCtx.beginPath();
+    wfCtx.moveTo(endX - releasePx, 0);
+    wfCtx.lineTo(endX, 0);
+    wfCtx.lineTo(endX, H);
+    wfCtx.closePath();
+    wfCtx.fillStyle = 'rgba(13,13,20,0.55)';
+    wfCtx.fill();
+    // Ligne diagonale rouge
+    wfCtx.beginPath();
+    wfCtx.moveTo(endX - releasePx, 0);
+    wfCtx.lineTo(endX, H);
+    wfCtx.strokeStyle = 'rgba(244,63,94,0.9)';
+    wfCtx.lineWidth = 2;
+    wfCtx.stroke();
+    wfCtx.restore();
+  }
+
+  // ── 6. Ligne centrale ────────────────────────────────────────────
+  wfCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+  wfCtx.lineWidth = 1;
+  wfCtx.beginPath();
+  wfCtx.moveTo(0, cy);
+  wfCtx.lineTo(W, cy);
+  wfCtx.stroke();
+
+  // ── 7. Curseurs dessinés sur le canvas ───────────────────────────
+  // Curseur début (jaune)
+  wfCtx.strokeStyle = '#e8ff3a';
+  wfCtx.lineWidth = 2;
+  wfCtx.beginPath();
+  wfCtx.moveTo(startX, 0);
+  wfCtx.lineTo(startX, H);
+  wfCtx.stroke();
+  // Poignée triangle haut
+  wfCtx.fillStyle = '#e8ff3a';
+  wfCtx.beginPath();
+  wfCtx.moveTo(startX - 7, 0);
+  wfCtx.lineTo(startX + 7, 0);
+  wfCtx.lineTo(startX, 14);
+  wfCtx.closePath();
+  wfCtx.fill();
+
+  // Curseur fin (rouge)
+  wfCtx.strokeStyle = '#ff4b6e';
+  wfCtx.lineWidth = 2;
+  wfCtx.beginPath();
+  wfCtx.moveTo(endX, 0);
+  wfCtx.lineTo(endX, H);
+  wfCtx.stroke();
+  // Poignée triangle bas
+  wfCtx.fillStyle = '#ff4b6e';
+  wfCtx.beginPath();
+  wfCtx.moveTo(endX - 7, H);
+  wfCtx.lineTo(endX + 7, H);
+  wfCtx.lineTo(endX, H - 14);
+  wfCtx.closePath();
+  wfCtx.fill();
+
+  laboUpdateCursors();
+}
+
+function laboUpdateCursors() {
+  const s = laboSelected;
+  const sr = s ? s.startRatio : 0;
+  const er = s ? s.endRatio   : 1;
+  cursorStart.style.left = (sr * 100) + '%';
+  cursorEnd.style.left   = (er * 100) + '%';
+  wfSelection.style.left  = (sr * 100) + '%';
+  wfSelection.style.width = ((er - sr) * 100) + '%';
+}
+
+// --- Drag des curseurs ---
+let draggingCursor = null;
+function initCursorDrag(el, which) {
+  el.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    const onMove = ev => {
+      if (!laboSelected) return;
+      const rect = wfContainer.getBoundingClientRect();
+      let ratio = (ev.clientX - rect.left) / rect.width;
+      ratio = Math.max(0, Math.min(1, ratio));
+      if (which === 'start') {
+        laboSelected.startRatio = Math.min(ratio, laboSelected.endRatio - 0.01);
+      } else {
+        laboSelected.endRatio = Math.max(ratio, laboSelected.startRatio + 0.01);
+      }
+      laboDrawWaveform();
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+initCursorDrag(cursorStart, 'start');
+initCursorDrag(cursorEnd,   'end');
+
+// --- Potentiomètres ---
+function laboUpdateKnobs() {
+  if (!laboSelected) return;
+  const s = laboSelected;
+  setKnobValue('volume',  s.volume,  `${s.volume}%`);
+  setKnobValue('pitch',   s.pitch,   `${s.pitch > 0 ? '+' : ''}${s.pitch}st`);
+  setKnobValue('attack',  s.attack,  `${Math.round(s.attack * 10)}ms`);
+  setKnobValue('release', s.release, `${Math.round(s.release * 10)}ms`);
+}
+
+function setKnobValue(id, val, label) {
+  const knob = document.getElementById('knob-'+id);
+  const min = parseFloat(knob.dataset.min);
+  const max = parseFloat(knob.dataset.max);
+  const pct = (val - min) / (max - min);
+  const deg = pct * 270 - 135;
+  knob.style.transform = `rotate(${deg}deg)`;
+  document.getElementById('knob-'+id+'-val').textContent = label;
+}
+
+function initKnob(id, onChange) {
+  const knob = document.getElementById('knob-'+id);
+  let startY, startVal;
+  knob.addEventListener('mousedown', e => {
+    startY = e.clientY;
+    startVal = parseFloat(knob.dataset.value);
+    const min = parseFloat(knob.dataset.min);
+    const max = parseFloat(knob.dataset.max);
+    const onMove = ev => {
+      const dy = startY - ev.clientY;
+      const range = max - min;
+      let newVal = startVal + (dy / 100) * range;
+      newVal = Math.max(min, Math.min(max, newVal));
+      knob.dataset.value = newVal;
+      onChange(newVal);
+      if (laboSelected) laboDrawWaveform();
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  knob.addEventListener('dblclick', () => {
+    const def = {volume:100, pitch:0, attack:0, release:0}[id];
+    knob.dataset.value = def;
+    onChange(def);
+    if (laboSelected) laboDrawWaveform();
+  });
+}
+
+initKnob('volume',  v => { if (laboSelected) { laboSelected.volume = Math.round(v); setKnobValue('volume', Math.round(v), `${Math.round(v)}%`); }});
+initKnob('pitch',   v => { if (laboSelected) { laboSelected.pitch = Math.round(v);  setKnobValue('pitch',  Math.round(v), `${Math.round(v) > 0 ? '+' : ''}${Math.round(v)}st`); }});
+initKnob('attack',  v => { if (laboSelected) { laboSelected.attack = v;  setKnobValue('attack',  v, `${Math.round(v * 10)}ms`); }});
+initKnob('release', v => { if (laboSelected) { laboSelected.release = v; setKnobValue('release', v, `${Math.round(v * 10)}ms`); }});
+
+// --- Lecture labo ---
+document.getElementById('labo-btn-play').addEventListener('click', laboPlay);
+document.getElementById('labo-btn-stop').addEventListener('click', laboStop);
+
+function laboPlay() {
+  if (!laboSelected || !laboSelected.audioBuffer) return;
+  ensureAudioCtx();
+  laboStop();
+  const s = laboSelected;
+  const buf = s.audioBuffer;
+  const totalDur = buf.duration;
+  const startSec = s.startRatio * totalDur;
+  const endSec   = s.endRatio   * totalDur;
+  const dur = endSec - startSec;
+
+  laboSrc = audioCtx.createBufferSource();
+  laboSrc.buffer = buf;
+  laboSrc.playbackRate.value = Math.pow(2, s.pitch / 12);
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = s.volume / 100;
+
+  // Attaque
+  const attackSec = (s.attack / 100) * dur;
+  if (attackSec > 0.005) {
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(s.volume / 100, audioCtx.currentTime + attackSec);
+  }
+  // Release
+  const releaseSec = (s.release / 100) * dur;
+  if (releaseSec > 0.005) {
+    gain.gain.setValueAtTime(s.volume / 100, audioCtx.currentTime + dur - releaseSec);
+    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  }
+
+  laboSrc.connect(gain);
+  gain.connect(audioCtx.destination);
+  laboSrc.start(audioCtx.currentTime, startSec, dur);
+  laboPlaying = true;
+  document.getElementById('labo-btn-play').classList.add('active');
+
+  // Playhead animation
+  wfPlayhead.style.display = 'block';
+  const t0 = audioCtx.currentTime;
+  function animWf() {
+    if (!laboPlaying) { wfPlayhead.style.display = 'none'; return; }
+    const elapsed = audioCtx.currentTime - t0;
+    const ratio = s.startRatio + (elapsed / totalDur);
+    wfPlayhead.style.left = (Math.min(ratio, s.endRatio) * 100) + '%';
+    if (elapsed < dur) requestAnimationFrame(animWf);
+    else laboStop();
+  }
+  requestAnimationFrame(animWf);
+
+  laboSrc.onended = laboStop;
+}
+
+function laboStop() {
+  if (laboSrc) { try { laboSrc.stop(); } catch(e) {} laboSrc = null; }
+  laboPlaying = false;
+  wfPlayhead.style.display = 'none';
+  document.getElementById('labo-btn-play').classList.remove('active');
+}
+
+// --- Outils ---
+document.getElementById('labo-btn-normalize').addEventListener('click', () => {
+  if (!laboSelected) return;
+  const buf = laboSelected.audioBuffer;
+  let peak = 0;
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < data.length; i++) if (Math.abs(data[i]) > peak) peak = Math.abs(data[i]);
+  }
+  if (peak === 0) return;
+  const gain = 1 / peak;
+  const newBuf = audioCtx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const src = buf.getChannelData(ch);
+    const dst = newBuf.getChannelData(ch);
+    for (let i = 0; i < src.length; i++) dst[i] = src[i] * gain;
+  }
+  laboSelected.audioBuffer = newBuf;
+  laboDrawWaveform();
+});
+
+document.getElementById('labo-btn-reverse').addEventListener('click', () => {
+  if (!laboSelected) return;
+  const buf = laboSelected.audioBuffer;
+  const newBuf = audioCtx.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    newBuf.copyToChannel(buf.getChannelData(ch).slice().reverse(), ch);
+  }
+  laboSelected.audioBuffer = newBuf;
+  laboDrawWaveform();
+});
+
+document.getElementById('labo-btn-trim').addEventListener('click', () => {
+  if (!laboSelected) return;
+  const buf = laboSelected.audioBuffer;
+  const startSample = Math.floor(laboSelected.startRatio * buf.length);
+  const endSample   = Math.floor(laboSelected.endRatio   * buf.length);
+  const newLen = endSample - startSample;
+  if (newLen < 1) return;
+  const newBuf = audioCtx.createBuffer(buf.numberOfChannels, newLen, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    newBuf.copyToChannel(buf.getChannelData(ch).slice(startSample, endSample), ch);
+  }
+  laboSelected.audioBuffer = newBuf;
+  laboSelected.startRatio = 0;
+  laboSelected.endRatio   = 1;
+  laboUpdateInfo();
+  laboDrawWaveform();
+});
+
+// --- Enregistrement micro ---
+document.getElementById('btn-rec').addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    document.getElementById('btn-rec').classList.remove('recording');
+    document.getElementById('btn-rec').textContent = '● ENREGISTRER';
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => recordChunks.push(e.data);
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(recordChunks, { type: 'audio/webm' });
+      const file = new File([blob], `Enreg-${Date.now()}.webm`, { type: 'audio/webm' });
+      await laboAddFile(file);
+    };
+    mediaRecorder.start();
+    document.getElementById('btn-rec').classList.add('recording');
+    document.getElementById('btn-rec').textContent = '■ STOP ENREG.';
+    // Basculer vers labo si pas déjà dessus
+    switchPanel('labo');
+  } catch(e) { alert('Accès micro refusé ou indisponible.'); }
+});
+
+// --- Envoyer vers réservoir atelier ---
+document.getElementById('labo-btn-send').addEventListener('click', () => {
+  if (!laboSelected || !laboSelected.audioBuffer) return;
+  ensureAudioCtx();
+  const s = laboSelected;
+
+  // Construire le buffer final (portion sélectionnée + attaque/release appliquées)
+  const buf = s.audioBuffer;
+  const startSample = Math.floor(s.startRatio * buf.length);
+  const endSample   = Math.floor(s.endRatio   * buf.length);
+  const newLen = endSample - startSample;
+  if (newLen < 1) return;
+
+  const finalBuf = audioCtx.createBuffer(buf.numberOfChannels, newLen, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const srcData = buf.getChannelData(ch).slice(startSample, endSample);
+    const volGain = s.volume / 100;
+    const attackSamples  = Math.floor((s.attack  / 100) * newLen);
+    const releaseSamples = Math.floor((s.release / 100) * newLen);
+    for (let i = 0; i < newLen; i++) {
+      let env = volGain;
+      if (i < attackSamples && attackSamples > 0) env *= i / attackSamples;
+      if (i >= newLen - releaseSamples && releaseSamples > 0) env *= (newLen - i) / releaseSamples;
+      srcData[i] *= env;
+    }
+    finalBuf.copyToChannel(srcData, ch);
+  }
+
+  // Créer le sample dans l'atelier
+  const color = SAMPLE_COLORS[samples.length % SAMPLE_COLORS.length];
+  const pitchRate = Math.pow(2, s.pitch / 12);
+  const sample = {
+    id: Date.now() + Math.random(),
+    name: s.name.substring(0, 18),
+    color,
+    audioBuffer: finalBuf,
+    pitchRate   // pitch de base du sample
+  };
+  samples.push(sample);
+  renderSampleList();
+  selectSample(sample);
+  // Marquer le son comme envoyé dans le labo
+  laboSelected.sent = true;
+  laboRenderList();
+});
+
+// =============================================
+// SUPABASE CONFIG
+// =============================================
+const SUPABASE_URL    = 'https://pejhgcqyuktvpfkbncls.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlamhnY3F5dWt0dnBma2JuY2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NTk5NzYsImV4cCI6MjA5NDQzNTk3Nn0.kONLFBq2etuWNODVmaW4AfN11c4PjuJQszYZs7_Y4vA';
+const SUPABASE_BUCKET = 'videos';
+
+async function uploadToSupabase(blob, filename) {
+  const url = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Content-Type': blob.type || 'video/webm',
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+}
+let videoExportMode = 'local'; // 'local' | 'upload'
+
+function buildVideoFilename() {
+  const classe = document.getElementById('video-classe').value.trim();
+  const nom    = document.getElementById('video-nom').value.trim();
+  const prenom = document.getElementById('video-prenom').value.trim();
+  const parts  = [classe, nom, prenom].filter(Boolean);
+  const base   = parts.length ? parts.join('-') : 'quasi-objet';
+  return base.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    + '.webm';
+}
+
+function updateVideoNamePreview() {
+  document.getElementById('video-name-preview').textContent =
+    'Nom du fichier : ' + buildVideoFilename();
+}
+
+['video-classe','video-nom','video-prenom'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateVideoNamePreview);
+});
+
+document.getElementById('btn-export-mp4').addEventListener('click', () => {
+  if (strokes.filter(s => s.sampleId && !s.isHighlight).length === 0) {
+    alert('Aucun tracé sonore à exporter.');
+    return;
+  }
+  updateVideoNamePreview();
+  document.getElementById('modal-video').classList.add('open');
+});
+
+document.getElementById('modal-video-cancel').addEventListener('click', () => {
+  document.getElementById('modal-video').classList.remove('open');
+});
+
+document.getElementById('modal-video-local').addEventListener('click', async () => {
+  document.getElementById('modal-video').classList.remove('open');
+  videoExportMode = 'local';
+  await exportVideo(buildVideoFilename());
+});
+
+document.getElementById('modal-video-confirm').addEventListener('click', async () => {
+  document.getElementById('modal-video').classList.remove('open');
+  videoExportMode = 'upload';
+  await exportVideo(buildVideoFilename());
+});
+
+async function exportVideo(filename) {
+  filename = filename || 'quasi-objet.webm';
+  ensureAudioCtx();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  stopPlayback();
+
+  // Durée totale
+  const sonores = strokes.filter(s => s.sampleId && !s.isHighlight);
+  if (!sonores.length) return;
+  const maxX = Math.max(...sonores.flatMap(s => s.points.map(p => p.x)));
+  const totalDur = posToTime(maxX) + 1;
+
+  // Canvas d'export (taille fixe 1920×500 en logique, rendu × dpr)
+  const VW = 1920, VH = Math.round(CANVAS_HEIGHT * (1920 / (canvasWidth * zoom || 1920)));
+  const vCanvas = document.createElement('canvas');
+  const vDpr = 1; // rendu 1:1 pour la vidéo
+  vCanvas.width  = VW;
+  vCanvas.height = Math.max(VH, 300);
+  const vCtx = vCanvas.getContext('2d');
+  const vZoom = VW / canvasWidth;
+
+  // Nœud de destination audio capturé
+  const audioDest = audioCtx.createMediaStreamDestination();
+
+  // Planifier tous les sons
+  const startClock = audioCtx.currentTime + 0.2;
+  sonores.forEach(str => {
+    const sample = samples.find(s => s.id === str.sampleId);
+    if (!sample || !sample.audioBuffer) return;
+    const startX = Math.min(...str.points.map(p => p.x));
+    const delay  = posToTime(startX);
+    const dur    = getStrokeDuration(str);
+    const pitch  = getStrokePitchAtX(str, startX);
+
+    const src = vCanvas._buildSrc
+      ? null
+      : buildAudioChainTo(audioCtx, sample.audioBuffer, startClock + delay, dur, pitch, str, audioDest);
+    if (src) {
+      src.start(startClock + delay);
+      src.stop(startClock + delay + dur + 0.1);
+    }
+  });
+
+  // Stream vidéo depuis le canvas
+  const fps = 30;
+  const videoStream = vCanvas.captureStream(fps);
+
+  // Combiner audio + vidéo
+  const audioTracks = audioDest.stream.getAudioTracks();
+  audioTracks.forEach(t => videoStream.addTrack(t));
+
+  // Choisir le meilleur format disponible
+  const mimeTypes = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  const mimeType = mimeTypes.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+
+  const recorder = new MediaRecorder(videoStream, { mimeType, videoBitsPerSecond: 8_000_000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    const blob = new Blob(chunks, { type: mimeType });
+    const btn  = document.getElementById('btn-export-mp4');
+
+    if (videoExportMode === 'local') {
+      // Téléchargement local uniquement
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      btn.textContent = '⬇ VIDÉO';
+      btn.classList.remove('active');
+    } else {
+      // Upload vers Supabase
+      btn.textContent = '⬆ ENVOI…';
+      try {
+        await uploadToSupabase(blob, filename);
+        btn.textContent = '✓ ENVOYÉ';
+        setTimeout(() => { btn.textContent = '⬇ VIDÉO'; btn.classList.remove('active'); }, 2000);
+      } catch(err) {
+        console.warn('Upload Supabase échoué :', err);
+        btn.textContent = '⬇ VIDÉO';
+        btn.classList.remove('active');
+      }
+    }
+  };
+
+  recorder.start();
+  document.getElementById('btn-export-mp4').textContent = '⏺ ENREG…';
+  document.getElementById('btn-export-mp4').classList.add('active');
+
+  // Animation du canvas de rendu
+  const t0 = audioCtx.currentTime;
+  const delay0 = startClock - t0;
+
+  // Attendre le départ audio
+  await new Promise(r => setTimeout(r, delay0 * 1000));
+
+  const renderStart = performance.now();
+
+  function drawVideoFrame() {
+    const elapsed = (performance.now() - renderStart) / 1000;
+    const curX    = elapsed * PIXELS_PER_SEC; // position en coords logiques
+
+    vCtx.save();
+    vCtx.scale(vZoom, vZoom);
+
+    // Fond
+    vCtx.fillStyle = '#0a0a0b';
+    vCtx.fillRect(0, 0, canvasWidth, CANVAS_HEIGHT);
+
+    // Grille (simplifiée)
+    const step = gridStep();
+    vCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+    vCtx.lineWidth = 1;
+    for (let x = 0; x < canvasWidth; x += step) {
+      vCtx.beginPath(); vCtx.moveTo(x, 0); vCtx.lineTo(x, CANVAS_HEIGHT); vCtx.stroke();
+    }
+    vCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+    for (let y = step; y < CANVAS_HEIGHT; y += step) {
+      vCtx.beginPath(); vCtx.moveTo(0, y); vCtx.lineTo(canvasWidth, y); vCtx.stroke();
+    }
+    // Ligne centrale
+    vCtx.strokeStyle = 'rgba(232,255,58,0.1)';
+    vCtx.lineWidth = 1.5;
+    vCtx.setLineDash([8, 6]);
+    vCtx.beginPath(); vCtx.moveTo(0, CANVAS_HEIGHT/2); vCtx.lineTo(canvasWidth, CANVAS_HEIGHT/2); vCtx.stroke();
+    vCtx.setLineDash([]);
+
+    // Tracés
+    strokes.forEach(str => drawStrokeOn(vCtx, str));
+
+    // Curseur de lecture
+    vCtx.strokeStyle = 'rgba(232,255,58,0.6)';
+    vCtx.lineWidth = 2 / vZoom;
+    vCtx.beginPath();
+    vCtx.moveTo(curX, 0);
+    vCtx.lineTo(curX, CANVAS_HEIGHT);
+    vCtx.stroke();
+
+    vCtx.restore();
+
+    if (elapsed < totalDur + 0.5) {
+      requestAnimationFrame(drawVideoFrame);
+    } else {
+      recorder.stop();
+    }
+  }
+
+  requestAnimationFrame(drawVideoFrame);
+}
+
+// Version de drawStroke pour un contexte externe (vCtx)
+function drawStrokeOn(c, str) {
+  const pts = str.points;
+  if (pts.length < 2) return;
+  c.save();
+  if (str.isHighlight) {
+    c.globalAlpha = 0.4;
+    c.strokeStyle = str.color;
+    c.lineWidth = 20;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.beginPath();
+    c.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+    c.stroke();
+  } else {
+    const cy = CANVAS_HEIGHT / 2;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (let i = 1; i < pts.length; i++) {
+      const yNorm = 1 - pts[i].y / CANVAS_HEIGHT;
+      c.globalAlpha = 0.5 + 0.5 * yNorm;
+      c.strokeStyle = str.color;
+      c.lineWidth = 3;
+      c.beginPath();
+      c.moveTo(pts[i-1].x, pts[i-1].y);
+      c.lineTo(pts[i].x, pts[i].y);
+      c.stroke();
+    }
+    c.globalAlpha = 1;
+    c.beginPath();
+    c.arc(pts[0].x, pts[0].y, 5, 0, Math.PI*2);
+    c.fillStyle = str.color;
+    c.fill();
+
+    if (str.reversed) {
+      c.fillStyle = '#fff';
+      c.font = 'bold 10px monospace';
+      c.fillText('◀', pts[0].x - 16, pts[0].y + 4);
+    }
+  }
+  c.restore();
+}
+
+
+// =============================================
+// RHYTHM MACHINE — moteur indépendant
+// =============================================
+
+const RH_COLORS = ['#e8ff3a', '#ff4b6e', '#3adfff'];
+
+let rhSteps = 16;
+let rhBpm = 120;
+let rhPlaying = false;
+let rhCurrentStep = 0;
+let rhSchedulerTimer = null;
+let rhNextStepTime = 0;
+let rhLookahead = 0.1;
+let rhScheduleInterval = 25;
+
+let rhVoices = [
+  { sampleId: null, steps: new Array(32).fill(false) },
+  { sampleId: null, steps: new Array(32).fill(false) },
+  { sampleId: null, steps: new Array(32).fill(false) },
+];
+
+let rhScheduledSources = [];
+
+function rhStepDuration() {
+  return 60 / rhBpm / 4;
+}
+
+function rhBuildUI() {
+  const body = document.getElementById('rh-body');
+  if (!body) return;
+  body.innerHTML = '';
+  rhVoices.forEach((voice, vi) => {
+    const track = document.createElement('div');
+    track.className = 'rhythm-track';
+    track.dataset.voice = vi;
+
+    const label = document.createElement('div');
+    label.className = 'rhythm-track-label';
+    label.title = 'Cliquer pour assigner le son sélectionné';
+    const sampleName = voice.sampleId ? (samples.find(s=>s.id===voice.sampleId)||{name:'?'}).name.substring(0,8) : '— SON —';
+    label.innerHTML = '<div class="rhythm-track-dot" style="background:' + RH_COLORS[vi] + '"></div><div class="rhythm-track-name">' + sampleName + '</div>';
+    label.addEventListener('click', () => rhAssignVoice(vi));
+    track.appendChild(label);
+
+    const stepsRow = document.createElement('div');
+    stepsRow.className = 'rhythm-steps';
+    stepsRow.id = 'rh-steps-' + vi;
+
+    const numGroups = rhSteps / 4;
+    for (let g = 0; g < numGroups; g++) {
+      const grp = document.createElement('div');
+      grp.className = 'rhythm-step-group';
+      for (let s = 0; s < 4; s++) {
+        const si = g * 4 + s;
+        const btn = document.createElement('div');
+        btn.className = 'rhythm-step' + (voice.steps[si] ? ' active' : '');
+        btn.dataset.step = si;
+        if (voice.steps[si]) { btn.style.background = RH_COLORS[vi]; btn.style.opacity = '0.85'; }
+        btn.addEventListener('click', () => rhToggleStep(vi, si));
+        grp.appendChild(btn);
+      }
+      stepsRow.appendChild(grp);
+      if (g < numGroups - 1) {
+        const sep = document.createElement('div');
+        sep.className = 'rhythm-step-sep';
+        stepsRow.appendChild(sep);
+      }
+    }
+    track.appendChild(stepsRow);
+    body.appendChild(track);
+  });
+  rhHighlightStep(rhCurrentStep);
+}
+
+function rhAssignVoice(vi) {
+  if (!activeSample) {
+    const lbl = document.querySelector('#rh-body .rhythm-track[data-voice="' + vi + '"] .rhythm-track-name');
+    if (lbl) { lbl.textContent = 'Sélect. un son'; setTimeout(() => rhUpdateLabels(), 1200); }
+    return;
+  }
+  rhVoices[vi].sampleId = activeSample.id;
+  rhUpdateLabels();
+}
+
+function rhUpdateLabels() {
+  rhVoices.forEach((voice, vi) => {
+    const lbl = document.querySelector('#rh-body .rhythm-track[data-voice="' + vi + '"] .rhythm-track-name');
+    if (lbl) lbl.textContent = voice.sampleId ? (samples.find(s=>s.id===voice.sampleId)||{name:'?'}).name.substring(0,8) : '— SON —';
+  });
+}
+
+function rhToggleStep(vi, si) {
+  rhVoices[vi].steps[si] = !rhVoices[vi].steps[si];
+  const btn = document.querySelector('#rh-steps-' + vi + ' .rhythm-step[data-step="' + si + '"]');
+  if (btn) {
+    btn.classList.toggle('active', rhVoices[vi].steps[si]);
+    btn.style.background = rhVoices[vi].steps[si] ? RH_COLORS[vi] : '';
+    btn.style.opacity = rhVoices[vi].steps[si] ? '0.85' : '';
+  }
+}
+
+function rhHighlightStep(step) {
+  document.querySelectorAll('.rhythm-step').forEach(el => el.classList.remove('playing'));
+  rhVoices.forEach((_, vi) => {
+    const btn = document.querySelector('#rh-steps-' + vi + ' .rhythm-step[data-step="' + step + '"]');
+    if (btn) btn.classList.add('playing');
+  });
+}
+
+function rhScheduler() {
+  ensureAudioCtx();
+  const now = audioCtx.currentTime;
+  while (rhNextStepTime < now + rhLookahead) {
+    rhVoices.forEach(voice => {
+      if (!voice.sampleId || !voice.steps[rhCurrentStep]) return;
+      const sample = samples.find(s => s.id === voice.sampleId);
+      if (!sample || !sample.audioBuffer) return;
+      rhPlayHit(sample.audioBuffer, rhNextStepTime);
+    });
+    const stepToShow = rhCurrentStep;
+    const delay = Math.max(0, (rhNextStepTime - now) * 1000);
+    setTimeout(() => { if (rhPlaying) rhHighlightStep(stepToShow); }, delay);
+    rhCurrentStep = (rhCurrentStep + 1) % rhSteps;
+    rhNextStepTime += rhStepDuration();
+  }
+  if (rhPlaying) rhSchedulerTimer = setTimeout(rhScheduler, rhScheduleInterval);
+}
+
+function rhPlayHit(audioBuffer, when) {
+  ensureAudioCtx();
+  const src = audioCtx.createBufferSource();
+  src.buffer = audioBuffer;
+  const hitDur = Math.min(0.25, audioBuffer.duration);
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.setValueAtTime(1, when);
+  gainNode.gain.linearRampToValueAtTime(0.0001, when + hitDur);
+  src.connect(gainNode);
+  gainNode.connect(rhythmMasterGain || audioCtx.destination);
+  src.start(when);
+  src.stop(when + hitDur + 0.05);
+  rhScheduledSources.push(src);
+  src.onended = () => { rhScheduledSources = rhScheduledSources.filter(s => s !== src); };
+}
+
+function rhStart() {
+  ensureAudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  rhCurrentStep = 0;
+  rhNextStepTime = audioCtx.currentTime + 0.05;
+  rhPlaying = true;
+  const btn = document.getElementById('rh-play-btn');
+  if (btn) { btn.textContent = '■'; btn.classList.add('rh-playing'); }
+  rhScheduler();
+}
+
+function rhStop() {
+  rhPlaying = false;
+  clearTimeout(rhSchedulerTimer);
+  rhScheduledSources.forEach(s => { try { s.stop(); } catch(e) {} });
+  rhScheduledSources = [];
+  const btn = document.getElementById('rh-play-btn');
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('rh-playing'); }
+  document.querySelectorAll('.rhythm-step').forEach(el => el.classList.remove('playing'));
+}
+
+document.getElementById('rh-play-btn').addEventListener('click', () => {
+  if (rhPlaying) rhStop(); else rhStart();
+});
+
+document.getElementById('rh-bpm').addEventListener('input', (e) => {
+  rhBpm = Math.max(20, Math.min(300, parseInt(e.target.value) || 120));
+});
+
+document.getElementById('rh-steps').addEventListener('change', (e) => {
+  rhSteps = parseInt(e.target.value);
+  if (rhCurrentStep >= rhSteps) rhCurrentStep = 0;
+  rhBuildUI();
+});
+
+document.getElementById('rh-clear-btn').addEventListener('click', () => {
+  rhVoices.forEach(v => v.steps.fill(false));
+  rhBuildUI();
+});
+
+document.getElementById('rh-toggle').addEventListener('click', () => {
+  const sec = document.getElementById('rhythm-section');
+  const btn = document.getElementById('rh-toggle');
+  const collapsed = sec.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '▲' : '▼';
+});
+
+document.getElementById('switch-atelier').addEventListener('click', () => {
+  setTimeout(rhBuildUI, 80);
+});
+
+// Volume controls
+document.getElementById('vol-canvas').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value);
+  document.getElementById('vol-canvas-val').textContent = v + '%';
+  if (canvasMasterGain) canvasMasterGain.gain.value = v / 100;
+});
+
+document.getElementById('vol-rhythm').addEventListener('input', (e) => {
+  const v = parseInt(e.target.value);
+  document.getElementById('vol-rhythm-val').textContent = v + '%';
+  if (rhythmMasterGain) rhythmMasterGain.gain.value = v / 100;
+});
+
+// Init boîte à rythme au démarrage de l'atelier
+setTimeout(rhBuildUI, 900);
+
+// buildAudioChain vers une destination arbitraire (pour l'export vidéo)
+function showVideoLink(url, filename) {
+  // Supprimer une notif précédente
+  const old = document.getElementById('video-notif');
+  if (old) old.remove();
+
+  const div = document.createElement('div');
+  div.id = 'video-notif';
+  div.style.cssText = `
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 14px 18px; z-index: 200;
+    font-family: Space Mono, monospace; font-size: 11px;
+    color: var(--text); max-width: 90vw; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  `;
+  div.innerHTML = `
+    <div style="color:var(--accent);font-weight:bold">✓ VIDÉO ENVOYÉE SUR SUPABASE</div>
+    <div style="color:var(--text-dim);word-break:break-all">${filename}</div>
+    <div style="display:flex;gap:8px;width:100%">
+      <a href="${url}" target="_blank" style="
+        background:var(--accent);color:#000;padding:6px 12px;border-radius:4px;
+        text-decoration:none;font-size:11px;font-family:Space Mono,monospace;
+      ">↗ OUVRIR</a>
+      <button onclick="navigator.clipboard.writeText('${url}');this.textContent='✓ COPIÉ'" style="
+        background:var(--surface);border:1px solid var(--border);color:var(--text);
+        padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;
+        font-family:Space Mono,monospace;
+      ">⎘ COPIER LIEN</button>
+      <button onclick="document.getElementById('video-notif').remove()" style="
+        background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+        font-size:16px;margin-left:auto;padding:0 4px;
+      ">✕</button>
+    </div>
+  `;
+  document.body.appendChild(div);
+  // Disparaît après 30s
+  setTimeout(() => { if (div.parentNode) div.remove(); }, 30000);
+}
+
+// buildAudioChain vers une destination arbitraire (pour l'export vidéo)
+function buildAudioChainTo(actx, audioBuffer, absStart, duration, pitch, str, dest) {
+  const delay = absStart - actx.currentTime;
+  return buildAudioChain(actx, audioBuffer, delay, duration, pitch, str, dest, actx.currentTime);
+}
+
+</script>
+</body>
+</html>
