@@ -1066,8 +1066,9 @@ canvas#composition {
   <div id="atelier-controls" style="display:none;align-items:center;gap:12px;flex-wrap:nowrap;margin-left:8px;flex-shrink:0">
     <div class="separator"></div>
     <div class="transport">
+      <button class="btn" id="btn-play-all" title="Lecture canvas + rythme (Espace)" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:bold">▶ TOUT</button>
       <button class="btn" id="btn-rewind" title="Retour au début">⏮ DÉBUT</button>
-      <button class="btn" id="btn-play" title="Lecture (Espace)">▶ LECTURE</button>
+      <button class="btn" id="btn-play" title="Lecture canvas uniquement">▶ CANVAS</button>
       <button class="btn" id="btn-stop" title="Stop">■ STOP</button>
       <button class="btn" id="btn-loop" title="Boucle">⟲ BOUCLE</button>
     </div>
@@ -1098,10 +1099,12 @@ canvas#composition {
 
 <!-- Toolbar mobile flottante (visible uniquement sur mobile en mode atelier) -->
 <div id="mobile-toolbar">
-  <button class="btn" id="mob-rewind">⏮ DÉBUT</button>
-  <button class="btn" id="mob-play">▶ LECTURE</button>
+  <button class="btn" id="mob-play-all" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:bold;flex-shrink:0">▶ TOUT</button>
+  <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
+  <button class="btn" id="mob-rewind">⏮</button>
+  <button class="btn" id="mob-play">▶ CANVAS</button>
   <button class="btn" id="mob-stop">■ STOP</button>
-  <button class="btn" id="mob-loop">⟲ BOUCLE</button>
+  <button class="btn" id="mob-loop">⟲</button>
   <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
   <button class="btn active" id="mob-brush">PINCEAU</button>
   <button class="btn" id="mob-eraser">GOMME</button>
@@ -2445,6 +2448,13 @@ function stopPlayback() {
   scheduledSources.forEach(src => { try { src.stop(); } catch(e) {} });
   scheduledSources = [];
   cancelAnimationFrame(playAnimFrame);
+  // Remettre le bouton TOUT si le rythme est aussi arrêté
+  if (!rhPlaying) {
+    ['btn-play-all','mob-play-all'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '▶ TOUT'; el.style.background = 'var(--accent)'; el.style.borderColor = 'var(--accent)'; el.style.color = '#000'; }
+    });
+  }
   redraw();
 }
 
@@ -2480,10 +2490,39 @@ function animatePlayhead() {
   playAnimFrame = requestAnimationFrame(animatePlayhead);
 }
 
+// =============================================
+// PLAY ALL — canvas + rythme synchronisés
+// =============================================
+function playAll() {
+  startPlayback();
+  rhStart();
+  // Mettre à jour l'état visuel du bouton TOUT
+  ['btn-play-all','mob-play-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '■ STOP'; el.style.background = 'var(--accent2)'; el.style.borderColor = 'var(--accent2)'; el.style.color = '#fff'; }
+  });
+}
+function stopAll() {
+  stopPlayback();
+  rhStop();
+  ['btn-play-all','mob-play-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '▶ TOUT'; el.style.background = 'var(--accent)'; el.style.borderColor = 'var(--accent)'; el.style.color = '#000'; }
+  });
+}
+function isPlayingAll() { return isPlaying || rhPlaying; }
+
+document.getElementById('btn-play-all').addEventListener('click', () => {
+  isPlayingAll() ? stopAll() : playAll();
+});
+document.getElementById('mob-play-all').addEventListener('click', () => {
+  isPlayingAll() ? stopAll() : playAll();
+});
+
 document.getElementById('btn-play').addEventListener('click', () => {
   if (isPlaying) stopPlayback(); else startPlayback();
 });
-document.getElementById('btn-stop').addEventListener('click', stopPlayback);
+document.getElementById('btn-stop').addEventListener('click', () => { stopAll(); });
 document.getElementById('btn-loop').addEventListener('click', () => {
   isLooping = !isLooping;
   document.getElementById('btn-loop').classList.toggle('active', isLooping);
@@ -2587,9 +2626,9 @@ overlay.addEventListener('click', () => {
 });
 
 // Toolbar mobile
-document.getElementById('mob-rewind').addEventListener('click', () => { stopPlayback(); scrollWrapper.scrollLeft = 0; });
+document.getElementById('mob-rewind').addEventListener('click', () => { stopAll(); scrollWrapper.scrollLeft = 0; });
 document.getElementById('mob-play').addEventListener('click',   () => { isPlaying ? stopPlayback() : startPlayback(); });
-document.getElementById('mob-stop').addEventListener('click',   stopPlayback);
+document.getElementById('mob-stop').addEventListener('click',   () => stopAll());
 document.getElementById('mob-loop').addEventListener('click',   () => {
   isLooping = !isLooping;
   document.getElementById('mob-loop').classList.toggle('active', isLooping);
@@ -2840,13 +2879,7 @@ document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space') {
     e.preventDefault();
-    if (isPlaying || rhPlaying) {
-      stopPlayback();
-      rhStop();
-    } else {
-      startPlayback();
-      rhStart();
-    }
+    isPlayingAll() ? stopAll() : playAll();
   }
   if (e.code === 'KeyB') setTool('brush');
   if (e.code === 'KeyE') setTool('eraser');
